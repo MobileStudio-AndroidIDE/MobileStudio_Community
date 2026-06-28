@@ -1,0 +1,2117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AndroidDev — 개발자 커뮤니티</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════
+   TOKENS & RESET
+═══════════════════════════════════════════ */
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  /* Dark theme (default) */
+  --bg:        #080c14;
+  --bg2:       #0d1320;
+  --bg3:       #111827;
+  --bg4:       #1a2236;
+  --bg5:       #1e2a3a;
+  --border:    #1c2e47;
+  --border2:   #263d5e;
+  --border3:   #2f4f78;
+  --text:      #e2eeff;
+  --text2:     #7d9bbf;
+  --text3:     #3d5c7a;
+  --accent:    #3d8ef0;
+  --accent2:   #29d6f5;
+  --accentGlow:rgba(61,142,240,.2);
+  --green:     #1fd9a0;
+  --red:       #f05656;
+  --yellow:    #f5b731;
+  --purple:    #9d7df5;
+  --orange:    #f07843;
+  --pink:      #e879c0;
+  --sbar:4px;
+  --r:8px;
+  --transition:.15s ease;
+}
+[data-theme="light"]{
+  --bg:#f0f4fc;--bg2:#ffffff;--bg3:#eef2f9;--bg4:#e4eaf5;--bg5:#d9e2f0;
+  --border:#ccd6e8;--border2:#adbdd6;--border3:#8aa5c4;
+  --text:#0f1b2d;--text2:#4a6380;--text3:#8aa5c4;
+  --accent:#2570dc;--accent2:#0ab4d1;--accentGlow:rgba(37,112,220,.12);
+  --green:#0db882;--red:#d94040;--yellow:#d48b00;--purple:#7856e0;
+  --orange:#d45f20;--pink:#c04fa0;
+}
+html,body{height:100%;overflow:hidden}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'Inter',system-ui,-apple-system,sans-serif;
+  font-size:14px;line-height:1.5;
+}
+#app{display:flex;height:100vh;overflow:hidden;position:relative}
+
+/* scrollbar */
+::-webkit-scrollbar{width:var(--sbar);height:var(--sbar)}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--border3)}
+
+/* ═══════════════════════════════════════════
+   UTILITY
+═══════════════════════════════════════════ */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:5px;
+  padding:8px 16px;border:none;border-radius:var(--r);cursor:pointer;
+  font-size:13px;font-weight:600;font-family:inherit;transition:all var(--transition);
+  white-space:nowrap;text-decoration:none;letter-spacing:-.1px;
+}
+.btn:active{transform:scale(.97)}
+.btn-primary{
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;box-shadow:0 2px 16px var(--accentGlow);
+}
+.btn-primary:hover{box-shadow:0 4px 24px rgba(61,142,240,.35);filter:brightness(1.08)}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--text2)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent);background:var(--accentGlow)}
+.btn-danger{background:rgba(240,86,86,.1);border:1px solid rgba(240,86,86,.25);color:var(--red)}
+.btn-danger:hover{background:rgba(240,86,86,.2)}
+.btn-green{background:rgba(31,217,160,.1);border:1px solid rgba(31,217,160,.25);color:var(--green)}
+.btn-green:hover{background:rgba(31,217,160,.2)}
+.btn-icon{width:32px;height:32px;padding:0;border-radius:6px}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:6px}
+.btn-xs{padding:3px 8px;font-size:11px;border-radius:5px}
+.btn-full{width:100%}
+
+.inp{
+  width:100%;padding:10px 13px;background:var(--bg3);
+  border:1px solid var(--border);border-radius:var(--r);
+  color:var(--text);font-size:13px;font-family:inherit;
+  outline:none;transition:all var(--transition);
+}
+.inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accentGlow)}
+.inp::placeholder{color:var(--text3)}
+.inp-err{border-color:rgba(240,86,86,.5)!important;box-shadow:0 0 0 3px rgba(240,86,86,.08)!important}
+.lbl{display:block;font-size:11px;font-weight:700;color:var(--text2);margin-bottom:5px;letter-spacing:.5px;text-transform:uppercase}
+.field{margin-bottom:16px}
+.field:last-of-type{margin-bottom:0}
+
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.5px}
+.badge-blue{background:rgba(61,142,240,.12);color:var(--accent);border:1px solid rgba(61,142,240,.2)}
+.badge-green{background:rgba(31,217,160,.12);color:var(--green);border:1px solid rgba(31,217,160,.2)}
+.badge-yellow{background:rgba(245,183,49,.12);color:var(--yellow);border:1px solid rgba(245,183,49,.2)}
+.badge-red{background:rgba(240,86,86,.12);color:var(--red);border:1px solid rgba(240,86,86,.2)}
+.badge-purple{background:rgba(157,125,245,.12);color:var(--purple);border:1px solid rgba(157,125,245,.2)}
+.badge-gray{background:var(--bg4);color:var(--text2);border:1px solid var(--border)}
+
+.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
+
+/* ═══════════════════════════════════════════
+   AUTH
+═══════════════════════════════════════════ */
+.auth-wrap{
+  display:flex;align-items:center;justify-content:center;
+  width:100%;min-height:100vh;
+  background:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(61,142,240,.12),transparent);
+}
+.auth-card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:18px;padding:36px;width:420px;
+  max-width:calc(100vw - 32px);position:relative;overflow:hidden;
+}
+.auth-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--accent),var(--green),var(--purple),var(--pink));
+}
+.auth-logo{text-align:center;margin-bottom:28px}
+.auth-logo-mark{
+  width:64px;height:64px;border-radius:16px;
+  background:linear-gradient(135deg,#1a3a6e,#0d2040);
+  border:1px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:30px;margin:0 auto 12px;
+  box-shadow:0 4px 24px rgba(61,142,240,.2);
+}
+.auth-title{font-size:22px;font-weight:800;letter-spacing:-.5px;color:var(--text)}
+.auth-title span{
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.auth-sub{font-size:12px;color:var(--text2);margin-top:4px}
+.auth-tabs{
+  display:flex;background:var(--bg3);border:1px solid var(--border);
+  border-radius:10px;padding:3px;margin-bottom:22px;gap:3px;
+}
+.auth-tab{
+  flex:1;padding:8px;border-radius:8px;text-align:center;cursor:pointer;
+  font-size:13px;color:var(--text3);transition:all var(--transition);font-weight:600;
+}
+.auth-tab.on{
+  background:var(--bg2);color:var(--text);
+  border:1px solid var(--border2);box-shadow:0 2px 8px rgba(0,0,0,.2);
+}
+.err-box{
+  display:flex;align-items:flex-start;gap:8px;padding:10px 13px;
+  background:rgba(240,86,86,.08);border:1px solid rgba(240,86,86,.2);
+  border-radius:8px;font-size:12px;color:var(--red);margin-top:10px;
+}
+.ok-box{
+  padding:10px 13px;background:rgba(31,217,160,.08);
+  border:1px solid rgba(31,217,160,.2);border-radius:8px;
+  font-size:12px;color:var(--green);margin-top:10px;
+}
+.auth-footer{margin-top:18px;padding-top:16px;border-top:1px solid var(--border);font-size:11px;color:var(--text3);text-align:center}
+.auth-footer a{color:var(--accent);text-decoration:none}
+.auth-footer a:hover{text-decoration:underline}
+.strength-bar{height:3px;border-radius:2px;background:var(--border);margin-top:6px;overflow:hidden}
+.strength-fill{height:100%;border-radius:2px;transition:all .3s}
+.strength-label{font-size:10px;margin-top:3px}
+
+/* ═══════════════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════════════ */
+.sidebar{
+  width:240px;background:var(--bg2);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;flex-shrink:0;
+  transition:width var(--transition);position:relative;z-index:10;
+}
+.sb-top{
+  padding:14px 13px 12px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;
+}
+.logo-mark{
+  width:30px;height:30px;border-radius:8px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;flex-shrink:0;
+}
+.logo-text{font-size:14px;font-weight:800;letter-spacing:-.4px;flex:1}
+.logo-text span{color:var(--accent)}
+
+.search-wrap{padding:8px 10px;border-bottom:1px solid var(--border)}
+.search-inp{
+  width:100%;padding:7px 10px 7px 30px;background:var(--bg3);
+  border:1px solid var(--border);border-radius:7px;
+  color:var(--text);font-size:12px;font-family:inherit;outline:none;
+  transition:all var(--transition);position:relative;
+}
+.search-inp:focus{border-color:var(--border2)}
+.search-inp::placeholder{color:var(--text3)}
+.search-box{position:relative}
+.search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:12px;pointer-events:none;color:var(--text3)}
+
+.user-row{
+  display:flex;align-items:center;gap:9px;padding:9px 12px;
+  border-bottom:1px solid var(--border);cursor:pointer;
+  transition:background var(--transition);
+}
+.user-row:hover{background:var(--bg3)}
+.ava{
+  width:32px;height:32px;border-radius:9px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:700;color:#fff;flex-shrink:0;
+  position:relative;
+}
+.ava-lg{width:38px;height:38px;border-radius:10px;font-size:16px}
+.ava-xl{width:50px;height:50px;border-radius:13px;font-size:22px}
+.ava-badge{
+  position:absolute;bottom:-2px;right:-2px;width:10px;height:10px;
+  border-radius:50%;background:var(--green);
+  border:2px solid var(--bg2);
+}
+.uname{font-size:13px;font-weight:600;color:var(--text)}
+.status-text{font-size:10px;color:var(--text3);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px}
+.online-dot{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--green)}
+.online-dot::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--green);display:inline-block}
+
+.rooms-list{flex:1;overflow-y:auto;padding:6px 8px}
+.sec-label{
+  padding:8px 6px 3px;font-size:10px;font-weight:700;
+  color:var(--text3);text-transform:uppercase;letter-spacing:.7px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.room-li{
+  display:flex;align-items:center;gap:7px;padding:7px 9px;
+  border-radius:8px;cursor:pointer;font-size:13px;color:var(--text2);
+  margin-bottom:1px;transition:all var(--transition);position:relative;
+}
+.room-li:hover{background:var(--bg3);color:var(--text)}
+.room-li.on{
+  background:linear-gradient(135deg,rgba(61,142,240,.12),rgba(41,214,245,.06));
+  color:var(--accent);
+}
+.room-li.on::before{
+  content:'';position:absolute;left:0;top:20%;bottom:20%;
+  width:2px;background:var(--accent);border-radius:0 2px 2px 0;
+}
+.room-hash{color:var(--text3);font-weight:700;font-size:15px;flex-shrink:0}
+.room-li.on .room-hash{color:var(--accent2)}
+.rname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.room-unread{
+  min-width:18px;height:18px;border-radius:9px;padding:0 5px;
+  background:var(--red);color:#fff;font-size:10px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+}
+.join-pill{
+  font-size:9px;padding:1px 6px;border-radius:3px;
+  background:rgba(61,142,240,.1);color:var(--accent);
+  border:1px solid rgba(61,142,240,.2);font-weight:700;
+}
+
+.sb-bottom{padding:10px 8px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:4px}
+
+/* ═══════════════════════════════════════════
+   MAIN AREA
+═══════════════════════════════════════════ */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);min-width:0}
+.chat-header{
+  padding:0 20px;height:54px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:12px;background:var(--bg2);
+  flex-shrink:0;
+}
+.ch-info{flex:1;min-width:0;display:flex;align-items:center;gap:10px}
+.ch-name{font-size:15px;font-weight:700;display:flex;align-items:center;gap:7px;white-space:nowrap}
+.ch-hash{color:var(--text3);font-size:17px}
+.ch-div{width:1px;height:20px;background:var(--border);flex-shrink:0}
+.ch-desc{font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ch-actions{display:flex;gap:6px;flex-shrink:0;align-items:center}
+.members-count{font-size:12px;color:var(--text2);display:flex;align-items:center;gap:4px;padding:0 4px}
+
+/* ═══════════════════════════════════════════
+   MESSAGES
+═══════════════════════════════════════════ */
+.msgs-wrap{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:0}
+.msg{
+  display:flex;gap:12px;padding:5px 10px;border-radius:10px;
+  transition:background var(--transition);position:relative;
+}
+.msg:hover{background:rgba(255,255,255,.025)}
+[data-theme="light"] .msg:hover{background:rgba(0,0,0,.025)}
+.msg.pinned{
+  background:rgba(245,183,49,.04);border-left:2px solid var(--yellow);
+  border-radius:0 10px 10px 0;padding-left:8px;
+}
+.msg-left{flex-shrink:0;padding-top:3px}
+.msg-body{flex:1;min-width:0}
+.msg-meta{display:flex;align-items:center;gap:8px;margin-bottom:3px;flex-wrap:wrap}
+.msg-name{font-size:13px;font-weight:700;cursor:pointer}
+.msg-name:hover{text-decoration:underline}
+.msg-name.owner{color:var(--yellow)}
+.msg-name.vice_owner{color:var(--green)}
+.role-tag{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700;letter-spacing:.4px}
+.rt-owner{background:rgba(245,183,49,.12);color:var(--yellow);border:1px solid rgba(245,183,49,.2)}
+.rt-vice{background:rgba(31,217,160,.12);color:var(--green);border:1px solid rgba(31,217,160,.2)}
+.msg-time{font-size:10px;color:var(--text3)}
+.msg-text{font-size:13px;line-height:1.75;color:var(--text);word-break:break-word}
+.msg-text strong{font-weight:700;color:#fff}
+[data-theme="light"] .msg-text strong{color:#000}
+.msg-text em{font-style:italic;color:var(--text2)}
+.msg-text u{text-decoration:underline;text-underline-offset:2px}
+.msg-text del{text-decoration:line-through;opacity:.5}
+.mention{color:var(--accent2);background:rgba(41,214,245,.1);border-radius:3px;padding:0 3px;font-weight:600;cursor:pointer}
+.mention:hover{background:rgba(41,214,245,.2)}
+.code-inline{
+  font-family:'JetBrains Mono',monospace;font-size:11px;
+  background:var(--bg4);border:1px solid var(--border);
+  padding:1px 5px;border-radius:4px;color:var(--accent2);
+}
+.code-block{
+  font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.7;
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:8px;padding:10px 12px;margin-top:5px;
+  overflow-x:auto;color:#7deda4;white-space:pre;
+}
+[data-theme="light"] .code-block{color:#1a7a3a}
+.msg-actions{
+  position:absolute;right:10px;top:4px;
+  display:none;gap:3px;align-items:center;
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:8px;padding:3px;
+  box-shadow:0 4px 16px rgba(0,0,0,.2);
+}
+.msg:hover .msg-actions{display:flex}
+.msg-files{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.file-chip{
+  display:flex;align-items:center;gap:7px;padding:7px 11px;
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:8px;font-size:12px;color:var(--text2);
+  text-decoration:none;cursor:pointer;transition:all var(--transition);
+}
+.file-chip:hover{border-color:var(--accent);color:var(--accent);background:var(--accentGlow)}
+.file-sz{font-size:10px;color:var(--text3)}
+
+.reactions{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.reaction{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:2px 8px;border-radius:12px;cursor:pointer;
+  font-size:12px;background:var(--bg3);border:1px solid var(--border);
+  transition:all var(--transition);
+}
+.reaction:hover{border-color:var(--accent);background:var(--accentGlow)}
+.reaction.mine{border-color:var(--accent);background:var(--accentGlow);color:var(--accent)}
+.reaction-count{font-size:11px;font-weight:600;color:var(--text2)}
+
+.emoji-picker{
+  position:fixed;background:var(--bg2);border:1px solid var(--border);
+  border-radius:12px;padding:10px;z-index:200;
+  box-shadow:0 8px 32px rgba(0,0,0,.4);
+}
+.emoji-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
+.ep-btn{
+  width:36px;height:36px;border-radius:7px;cursor:pointer;
+  font-size:18px;display:flex;align-items:center;justify-content:center;
+  background:transparent;border:none;transition:background var(--transition);
+}
+.ep-btn:hover{background:var(--bg3)}
+
+.date-div{
+  display:flex;align-items:center;gap:10px;padding:12px 0 6px;
+  color:var(--text3);font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+}
+.date-div::before,.date-div::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.pinned-banner{
+  display:flex;align-items:center;gap:8px;padding:6px 16px;
+  background:rgba(245,183,49,.07);border-bottom:1px solid rgba(245,183,49,.15);
+  font-size:12px;color:var(--yellow);cursor:pointer;
+  transition:background var(--transition);flex-shrink:0;
+}
+.pinned-banner:hover{background:rgba(245,183,49,.12)}
+
+.typing-bar{
+  padding:4px 16px;font-size:11px;color:var(--text3);
+  min-height:22px;display:flex;align-items:center;gap:6px;
+}
+.typing-dots{display:flex;gap:3px}
+.typing-dot{
+  width:4px;height:4px;border-radius:50%;background:var(--text3);
+  animation:tdot 1.2s ease-in-out infinite;
+}
+.typing-dot:nth-child(2){animation-delay:.2s}
+.typing-dot:nth-child(3){animation-delay:.4s}
+@keyframes tdot{0%,80%,100%{transform:scale(0)}40%{transform:scale(1)}}
+
+/* ═══════════════════════════════════════════
+   INPUT AREA
+═══════════════════════════════════════════ */
+.inp-area{
+  padding:10px 16px 14px;border-top:1px solid var(--border);
+  background:var(--bg2);flex-shrink:0;
+}
+.reply-preview{
+  display:flex;align-items:center;gap:8px;padding:6px 10px;
+  background:var(--bg3);border-radius:7px 7px 0 0;
+  border:1px solid var(--border);border-bottom:none;
+  font-size:12px;color:var(--text2);
+}
+.rp-bar{width:3px;height:100%;background:var(--accent);border-radius:2px;flex-shrink:0;align-self:stretch}
+.rp-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fp-item{
+  display:flex;align-items:center;gap:6px;padding:4px 10px;
+  background:var(--bg3);border:1px solid var(--border);border-radius:6px;
+  font-size:11px;color:var(--text2);
+}
+.fp-rm{cursor:pointer;color:var(--red);font-size:13px;margin-left:2px;opacity:.7;line-height:1}
+.fp-rm:hover{opacity:1}
+.inp-box{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:12px;display:flex;align-items:flex-end;gap:8px;
+  padding:10px 13px;transition:border-color var(--transition);
+}
+.inp-box:focus-within{border-color:var(--border2);box-shadow:0 0 0 3px var(--accentGlow)}
+.inp-tools{display:flex;align-items:center;gap:3px;flex-shrink:0}
+.chat-ta{
+  flex:1;background:transparent;border:none;color:var(--text);
+  font-size:13px;resize:none;outline:none;max-height:150px;
+  overflow-y:auto;font-family:inherit;line-height:1.65;
+}
+.chat-ta::placeholder{color:var(--text3)}
+.inp-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.cc{font-size:10px;color:var(--text3);font-variant-numeric:tabular-nums}
+.cc.warn{color:var(--yellow)}.cc.over{color:var(--red)}
+.inp-hint{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-top:6px;font-size:10px;color:var(--text3);
+}
+.inp-hint a{color:var(--accent2);text-decoration:none}
+.inp-hint a:hover{text-decoration:underline}
+
+/* ═══════════════════════════════════════════
+   FORMAT HELP
+═══════════════════════════════════════════ */
+.fmt-panel{
+  display:none;margin-top:8px;background:var(--bg3);
+  border:1px solid var(--border);border-radius:10px;padding:12px 14px;
+}
+.fmt-panel.open{display:block}
+.fmt-title{font-size:10px;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.6px}
+.fmt-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 20px}
+.fmt-row{display:flex;align-items:center;gap:8px;padding:2px 0;font-size:12px}
+.fmt-code{
+  font-family:'JetBrains Mono',monospace;color:var(--accent2);font-size:11px;
+  background:rgba(41,214,245,.08);padding:1px 5px;border-radius:3px;
+}
+.colors-wrap{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px}
+.cswatch{
+  font-size:11px;padding:2px 8px;border-radius:4px;font-weight:700;
+  border:1px solid transparent;cursor:default;
+}
+
+/* ═══════════════════════════════════════════
+   HOME PAGE
+═══════════════════════════════════════════ */
+.home-page{flex:1;overflow-y:auto;padding:36px 32px}
+.home-hero{margin-bottom:32px}
+.home-title{
+  font-size:30px;font-weight:800;letter-spacing:-.7px;line-height:1.15;
+}
+.home-title .grad{
+  background:linear-gradient(135deg,var(--accent),var(--green));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.home-sub{font-size:13px;color:var(--text2);margin-top:7px}
+.home-filters{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.filter-btn{
+  padding:5px 13px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;
+  background:var(--bg3);border:1px solid var(--border);color:var(--text2);
+  transition:all var(--transition);
+}
+.filter-btn.on{background:var(--accentGlow);border-color:var(--accent);color:var(--accent)}
+.filter-btn:hover{border-color:var(--border2);color:var(--text)}
+.rooms-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.room-card{
+  background:var(--bg2);border:1px solid var(--border);border-radius:12px;
+  padding:18px;cursor:pointer;transition:all var(--transition);position:relative;overflow:hidden;
+}
+.room-card::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--accent),var(--green));
+  transform:scaleX(0);transition:transform .25s;transform-origin:left;
+}
+.room-card:hover{border-color:var(--border2);transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,0,0,.25)}
+.room-card:hover::after{transform:scaleX(1)}
+.rc-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
+.rc-name{font-size:15px;font-weight:700;flex:1}
+.rc-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+.rc-desc{font-size:12px;color:var(--text2);min-height:32px;margin-bottom:12px;line-height:1.55}
+.rc-foot{display:flex;align-items:center;justify-content:space-between}
+.rc-meta{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--text3)}
+
+/* ═══════════════════════════════════════════
+   EMPTY
+═══════════════════════════════════════════ */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:8px;color:var(--text2);text-align:center;padding:40px}
+.empty-icon{font-size:52px;margin-bottom:6px;opacity:.6}
+.empty-t{font-size:16px;font-weight:700;color:var(--text)}
+.empty-s{font-size:13px;color:var(--text2);max-width:280px}
+
+/* ═══════════════════════════════════════════
+   MODAL
+═══════════════════════════════════════════ */
+.m-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.65);
+  display:flex;align-items:center;justify-content:center;
+  z-index:300;padding:16px;backdrop-filter:blur(6px);
+}
+.modal{
+  background:var(--bg2);border:1px solid var(--border);border-radius:16px;
+  padding:26px;width:460px;max-width:100%;max-height:88vh;overflow-y:auto;
+  position:relative;box-shadow:0 16px 64px rgba(0,0,0,.5);
+}
+.modal-lg{width:560px}
+.m-title{font-size:16px;font-weight:700;margin-bottom:20px;color:var(--text);display:flex;align-items:center;gap:8px}
+.m-foot{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+.m-foot-l{display:flex;gap:8px;justify-content:space-between;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+.mem-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.mem-row:last-child{border-bottom:none}
+.mem-info{flex:1;min-width:0}
+.mem-name{font-size:13px;font-weight:600}
+.mem-role{font-size:11px;color:var(--text2);margin-top:1px}
+.mem-acts{display:flex;gap:5px;flex-shrink:0}
+.ban-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(240,86,86,.1)}
+.ban-row:last-child{border-bottom:none}
+.sql-pre{
+  background:var(--bg);border:1px solid var(--border);border-radius:8px;
+  padding:14px;font-family:'JetBrains Mono',monospace;font-size:11px;
+  line-height:1.7;color:#7deda4;overflow:auto;white-space:pre;
+  max-height:280px;margin:10px 0;
+}
+[data-theme="light"] .sql-pre{color:#1a7a3a}
+.radio-g{display:flex;gap:16px;margin-top:7px}
+.radio-l{display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;color:var(--text2)}
+.radio-l input{accent-color:var(--accent)}
+.radio-l:has(input:checked){color:var(--text)}
+.profile-preview{
+  display:flex;align-items:center;gap:14px;padding:16px;
+  background:var(--bg3);border-radius:10px;margin-bottom:18px;
+}
+.ava-picker{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+.ava-swatch{
+  width:28px;height:28px;border-radius:7px;cursor:pointer;
+  border:2px solid transparent;transition:all var(--transition);
+}
+.ava-swatch.on{border-color:#fff;transform:scale(1.15)}
+[data-theme="light"] .ava-swatch.on{border-color:var(--bg)}
+.tag-input-wrap{position:relative}
+.tag-suggestions{
+  position:absolute;top:100%;left:0;right:0;background:var(--bg2);
+  border:1px solid var(--border);border-radius:8px;overflow:hidden;z-index:50;
+  box-shadow:0 4px 16px rgba(0,0,0,.2);
+}
+.tag-sug-item{
+  padding:8px 12px;cursor:pointer;font-size:12px;color:var(--text2);
+  transition:background var(--transition);
+}
+.tag-sug-item:hover{background:var(--bg3);color:var(--text)}
+.tag-cloud{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.tag-chip{
+  padding:3px 9px;border-radius:5px;font-size:11px;font-weight:600;
+  background:var(--bg4);border:1px solid var(--border2);color:var(--text2);
+  cursor:pointer;transition:all var(--transition);display:flex;align-items:center;gap:4px;
+}
+.tag-chip:hover{border-color:var(--red);color:var(--red)}
+.tag-chip.filter-active{border-color:var(--accent);color:var(--accent);background:var(--accentGlow)}
+
+/* ═══════════════════════════════════════════
+   SEARCH PANEL
+═══════════════════════════════════════════ */
+.search-panel{
+  position:absolute;top:54px;left:240px;right:0;bottom:0;
+  background:var(--bg);z-index:50;display:flex;flex-direction:column;
+  border-top:1px solid var(--border);
+}
+.search-results{flex:1;overflow-y:auto;padding:16px}
+.search-result-item{
+  display:flex;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;
+  transition:background var(--transition);border-bottom:1px solid var(--border);
+}
+.search-result-item:last-child{border-bottom:none}
+.search-result-item:hover{background:var(--bg2)}
+.sr-content{flex:1;min-width:0}
+.sr-author{font-size:12px;font-weight:600;color:var(--text)}
+.sr-text{font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+.sr-meta{font-size:10px;color:var(--text3);margin-top:2px}
+.highlight{background:rgba(245,183,49,.25);color:var(--yellow);border-radius:2px;padding:0 2px}
+
+/* ═══════════════════════════════════════════
+   ONLINE MEMBERS PANEL
+═══════════════════════════════════════════ */
+.members-panel{
+  width:200px;background:var(--bg2);border-left:1px solid var(--border);
+  display:flex;flex-direction:column;flex-shrink:0;
+  transition:all var(--transition);overflow:hidden;
+}
+.members-panel.collapsed{width:0}
+.mp-title{padding:13px 14px;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border)}
+.mp-list{flex:1;overflow-y:auto;padding:8px}
+.mp-item{display:flex;align-items:center;gap:8px;padding:5px 7px;border-radius:7px;cursor:pointer;transition:background var(--transition)}
+.mp-item:hover{background:var(--bg3)}
+.mp-uname{font-size:12px;font-weight:500;color:var(--text2)}
+.mp-status{font-size:10px;color:var(--text3)}
+
+/* ═══════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════ */
+.toast{
+  position:fixed;bottom:24px;right:24px;
+  background:var(--bg3);border:1px solid var(--border2);border-radius:10px;
+  padding:12px 16px;font-size:13px;color:var(--text);z-index:500;
+  box-shadow:0 8px 32px rgba(0,0,0,.4);opacity:0;
+  transform:translateY(8px);transition:all .25s;max-width:320px;
+  display:flex;align-items:center;gap:8px;
+}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.success{border-color:rgba(31,217,160,.3);background:rgba(31,217,160,.06)}
+.toast.error{border-color:rgba(240,86,86,.3);background:rgba(240,86,86,.06)}
+.toast.info{border-color:rgba(61,142,240,.3);background:rgba(61,142,240,.06)}
+
+/* ═══════════════════════════════════════════
+   TOOLTIP
+═══════════════════════════════════════════ */
+[data-tip]{position:relative}
+[data-tip]::after{
+  content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);
+  background:var(--bg);border:1px solid var(--border2);color:var(--text2);
+  font-size:10px;white-space:nowrap;padding:3px 8px;border-radius:5px;
+  pointer-events:none;opacity:0;transition:opacity .15s;z-index:100;
+}
+[data-tip]:hover::after{opacity:1}
+
+/* ═══════════════════════════════════════════
+   MISC
+═══════════════════════════════════════════ */
+.ping-banner{
+  display:flex;align-items:center;gap:8px;padding:4px 16px;
+  background:rgba(157,125,245,.07);border-bottom:1px solid rgba(157,125,245,.15);
+  font-size:12px;color:var(--purple);flex-shrink:0;cursor:pointer;
+}
+.ping-banner:hover{background:rgba(157,125,245,.12)}
+</style>
+</head>
+<body data-theme="dark">
+<div id="app">
+  <div style="display:flex;align-items:center;justify-content:center;height:100vh;color:var(--text2);font-size:13px;gap:10px">
+    <span style="font-size:20px">📱</span> <span>연결 중…</span>
+  </div>
+</div>
+<div id="toast" class="toast"></div>
+
+<script>
+'use strict';
+
+/* ══════════════════════════════════════════
+   SUPABASE
+══════════════════════════════════════════ */
+const { createClient } = supabase;
+const SB = createClient(
+  'https://bgojdyquljsulukeuvox.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJnb2pkeXF1bGpzdWx1a2V1dm94Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExODcyMzgsImV4cCI6MjA5Njc2MzIzOH0.-Nx82m0-77v5KOio1-S-fDn8RbNha_-6ZMbD_G3Ympc'
+);
+
+/* ══════════════════════════════════════════
+   CONSTANTS
+══════════════════════════════════════════ */
+const COLORS = ['red','green','blue','yellow','orange','purple','pink','cyan',
+  'magenta','lime','teal','indigo','violet','rose','amber','emerald','sky','fuchsia','coral','crimson'];
+const EXTS = ['.zip','.kt','.java','.txt','.xml','.json','.gradle','.py','.js','.ts',
+  '.md','.cpp','.h','.c','.sh','.yml','.yaml','.toml','.properties','.apk','.aar',
+  '.so','.proto','.kts','.dart','.rs','.go','.log','.csv','.sql','.html','.css'];
+const MAX_FILE = 100 * 1024 * 1024;
+const MAX_FILES = 5;
+const MAX_MSG = 1500;
+const COOLDOWN = 4000;
+const BUCKET = 'chat-files';
+const FILE_TTL = 7 * 86400 * 1000;
+const COMMON_TAGS = ['Android','Kotlin','Jetpack Compose','Firebase','MVVM','Coroutines',
+  'Room DB','Retrofit','Hilt','Navigation','CameraX','ML Kit','KMM','OpenGL'];
+const EMOJIS = ['👍','❤️','😂','😮','😢','🔥','🎉','🤔','👀','✅','🚀','💯','🐛','⚡','🎯','💡'];
+const AVA_COLORS = ['#3d8ef0','#1fd9a0','#f5b731','#9d7df5','#f07843','#f05656','#29d6f5','#e879c0','#7ec850','#f0a843'];
+
+/* ══════════════════════════════════════════
+   STATE
+══════════════════════════════════════════ */
+const S = {
+  user:null, profile:null,
+  rooms:[], joined:[],
+  room:null, msgs:[], members:[], bans:[],
+  myRole:null, lastSend:0,
+  files:[], channel:null, presenceChannel:null,
+  modal:null, authTab:'in',
+  authErr:'', authOk:'',
+  sending:false, fmtOpen:false,
+  theme:'dark',
+  search:'', searchResults:[], searchOpen:false,
+  membersPanelOpen:true,
+  onlineUsers:{},
+  unread:{},
+  pinnedMsg:null,
+  replyTo:null,
+  typingUsers:{},
+  typingTimer:null,
+  filterTag:'',
+  emojiPicker:null,
+  mentionSuggestions:[], mentionOpen:false,
+};
+
+/* ══════════════════════════════════════════
+   UTILS
+══════════════════════════════════════════ */
+function esc(s){
+  if(s==null)return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function avaBg(name, custom){
+  if(custom)return custom;
+  const p=AVA_COLORS;
+  return p[(name||'?').charCodeAt(0)%p.length];
+}
+function ftime(ts){
+  const d=new Date(ts), now=new Date();
+  const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const md=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  const t=d.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  return today.getTime()===md.getTime()?t:d.toLocaleDateString('ko-KR',{month:'short',day:'numeric'})+' '+t;
+}
+function fsize(b){
+  if(b<1024)return b+'B';
+  if(b<1048576)return(b/1024).toFixed(1)+'KB';
+  return(b/1048576).toFixed(1)+'MB';
+}
+function ficon(name){
+  const e=(name.split('.').pop()||'').toLowerCase();
+  const m={kt:'🔷',kts:'🔷',java:'☕',py:'🐍',js:'💛',ts:'💙',dart:'🎯',rs:'🦀',
+    go:'🐹',zip:'📦',txt:'📝',xml:'📋',json:'📄',md:'📓',cpp:'⚡',c:'⚡',h:'📌',
+    sh:'🖥️',gradle:'🔧',apk:'📱',aar:'📦',yml:'⚙️',yaml:'⚙️',so:'🔗',proto:'📡',
+    log:'📋',csv:'📊',sql:'🗄️',html:'🌐',css:'🎨'};
+  return m[e]||'📁';
+}
+function getFingerprint(){
+  const c=[navigator.userAgent,navigator.language,screen.width+'x'+screen.height,
+    screen.colorDepth,new Date().getTimezoneOffset(),navigator.hardwareConcurrency||0,
+    navigator.platform||''].join('|');
+  let h=0;
+  for(let i=0;i<c.length;i++){h=((h<<5)-h)+c.charCodeAt(i);h|=0;}
+  return Math.abs(h).toString(36);
+}
+const FINGERPRINT=getFingerprint();
+
+function toast(msg, type='success'){
+  const icons={success:'✓',error:'⚠',info:'ℹ'};
+  const t=document.getElementById('toast');
+  t.innerHTML=`<span>${icons[type]||'✓'}</span>${esc(msg)}`;
+  t.className='toast '+type+' show';
+  clearTimeout(t._to);
+  t._to=setTimeout(()=>{t.className='toast';},3200);
+}
+function scrollBot(){
+  const el=document.getElementById('msgs');
+  if(el)el.scrollTop=el.scrollHeight;
+}
+function updateCC(v){
+  const el=document.getElementById('cc');
+  if(!el)return;
+  const n=v.length;
+  el.textContent=n+'/'+MAX_MSG;
+  el.className='cc'+(n>MAX_MSG*.85?' warn':'')+(n>MAX_MSG?' over':'');
+}
+function themeToggle(){
+  S.theme=S.theme==='dark'?'light':'dark';
+  document.body.setAttribute('data-theme',S.theme);
+  localStorage.setItem('adc-theme',S.theme);
+}
+
+/* ══════════════════════════════════════════
+   TEXT FORMATTING
+══════════════════════════════════════════ */
+function fmt(text, searchQ){
+  if(!text)return '';
+  const toks=[];
+  const colorPat=new RegExp('<('+COLORS.join('|')+'|#[0-9a-fA-F]{6})>"([^"\\n]*?)"','g');
+  text=text.replace(colorPat,(_,color,content)=>{const idx=toks.length;toks.push({color,content});return '\x01'+idx+'\x01';});
+  text=esc(text);
+  // code blocks ```
+  text=text.replace(/```([^`]+?)```/g,(_, code)=>`<div class="code-block">${esc(code)}</div>`);
+  // inline code `
+  text=text.replace(/`([^`\n]+?)`/g,'<span class="code-inline">$1</span>');
+  // bold+italic ***
+  text=text.replace(/\*\*\*([^\n*]{1,300}?)\*\*\*/g,'<strong><em>$1</em></strong>');
+  // bold **
+  text=text.replace(/\*\*([^\n*]{1,300}?)\*\*/g,'<strong>$1</strong>');
+  // underline _* *_
+  text=text.replace(/_\*([^\n]{1,300}?)\*_/g,'<u>$1</u>');
+  // italic _
+  text=text.replace(/_([^\n_]{1,300}?)_/g,'<em>$1</em>');
+  // strikethrough -
+  text=text.replace(/(?<![a-zA-Z0-9\u3131-\uD79D])-([^\n\-]{1,200}?)-(?![a-zA-Z0-9\u3131-\uD79D])/g,'<del>$1</del>');
+  // mentions @username
+  text=text.replace(/@([a-zA-Z0-9가-힣_()\-]{2,20})/g,'<span class="mention">@$1</span>');
+  // color tokens
+  toks.forEach(({color,content},idx)=>{
+    let inner=esc(content);
+    inner=inner.replace(/\*\*([^\n*]+?)\*\*/g,'<strong>$1</strong>');
+    inner=inner.replace(/_([^\n_]+?)_/g,'<em>$1</em>');
+    text=text.split('\x01'+idx+'\x01').join(`<span style="color:${esc(color)}">${inner}</span>`);
+  });
+  // search highlight
+  if(searchQ){
+    const re=new RegExp('('+esc(searchQ).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');
+    text=text.replace(re,'<span class="highlight">$1</span>');
+  }
+  return text.replace(/\n/g,'<br>');
+}
+
+/* ══════════════════════════════════════════
+   AUTH
+══════════════════════════════════════════ */
+async function signUp(email,pw,uname){
+  S.authErr='';S.authOk='';
+  if(/\s/.test(uname)){S.authErr='닉네임에 공백을 사용할 수 없습니다.';render();return;}
+  if(!/^[a-zA-Z0-9가-힣_()\-]{2,20}$/.test(uname)){
+    S.authErr='닉네임: 2~20자, 한글/영문/숫자와 _ ( ) - 만 사용 가능';render();return;
+  }
+  if(pw.length<6){S.authErr='비밀번호는 6자 이상이어야 합니다.';render();return;}
+  const {data:ex}=await SB.from('profiles').select('id').eq('username',uname).maybeSingle();
+  if(ex){S.authErr='이미 사용 중인 닉네임입니다.';render();return;}
+  // check device fingerprint ban
+  const {data:fpBan}=await SB.from('device_bans').select('id').eq('fingerprint',FINGERPRINT).maybeSingle();
+  if(fpBan){S.authErr='이 기기는 가입이 제한되어 있습니다.';render();return;}
+  const {data,error}=await SB.auth.signUp({email,password:pw});
+  if(error){S.authErr=error.message;render();return;}
+  if(data?.user){
+    await SB.from('profiles').insert({id:data.user.id,username:uname,ava_color:AVA_COLORS[0]});
+    S.user=data.user;
+    S.profile={id:data.user.id,username:uname,ava_color:AVA_COLORS[0]};
+    await loadRooms();
+    render();toast('가입 완료! 환영합니다 '+uname+'! 🎉');
+  }else{
+    S.authOk='확인 이메일을 발송했습니다. 이메일 인증 후 로그인하세요.';render();
+  }
+}
+
+async function signIn(email,pw){
+  S.authErr='';
+  const {data:fpBan}=await SB.from('device_bans').select('id').eq('fingerprint',FINGERPRINT).maybeSingle();
+  if(fpBan){S.authErr='이 기기는 접근이 제한되어 있습니다.';render();return;}
+  const {data,error}=await SB.auth.signInWithPassword({email,password:pw});
+  if(error){S.authErr=error.message;render();return;}
+  S.user=data.user;
+  await loadProfile();
+  await loadRooms();
+  render();toast('다시 돌아오셨군요! 👋');
+}
+
+async function signOut(){
+  cleanup();
+  await SB.auth.signOut();
+  Object.assign(S,{user:null,profile:null,rooms:[],joined:[],room:null,
+    msgs:[],members:[],bans:[],myRole:null,files:[],channel:null,
+    presenceChannel:null,modal:null,onlineUsers:{},pinnedMsg:null,replyTo:null});
+  render();
+}
+
+async function loadProfile(){
+  if(!S.user)return;
+  const {data}=await SB.from('profiles').select('*').eq('id',S.user.id).maybeSingle();
+  S.profile=data;
+}
+
+/* ══════════════════════════════════════════
+   ROOMS
+══════════════════════════════════════════ */
+async function loadRooms(){
+  const {data}=await SB.from('rooms').select('*').order('created_at',{ascending:false});
+  S.rooms=data||[];
+  if(S.user){
+    const {data:m}=await SB.from('room_members').select('room_id').eq('user_id',S.user.id);
+    S.joined=(m||[]).map(x=>x.room_id);
+  }
+}
+
+async function createRoom(name,desc,tags){
+  const {data,error}=await SB.from('rooms')
+    .insert({name,description:desc,owner_id:S.user.id,tags})
+    .select().single();
+  if(error){toast('방 생성 실패: '+error.message,'error');return;}
+  await SB.from('room_members').insert({room_id:data.id,user_id:S.user.id,role:'owner'});
+  S.joined.push(data.id);S.rooms.unshift(data);S.modal=null;
+  await enter(data);toast('# '+name+' 방이 개설되었습니다! 🎉');
+}
+
+async function handleRoomClick(id){
+  if(S.joined.includes(id)){
+    const r=S.rooms.find(x=>x.id===id);
+    if(r)await enter(r);
+  }else{await joinRoom(id);}
+}
+
+async function joinRoom(id){
+  const room=S.rooms.find(r=>r.id===id);if(!room)return;
+  // fingerprint ban check
+  const {data:fpBan}=await SB.from('device_bans').select('id').eq('fingerprint',FINGERPRINT).maybeSingle();
+  if(fpBan){toast('이 기기는 접근이 제한되어 있습니다.','error');return;}
+  const {data:ban}=await SB.from('bans').select('*')
+    .eq('room_id',id).eq('user_id',S.user.id).maybeSingle();
+  if(ban){
+    if(ban.permanent){toast('이 방에서 영구 차단되었습니다.','error');return;}
+    if(ban.expires_at&&new Date(ban.expires_at)>new Date()){
+      toast('차단 중: '+new Date(ban.expires_at).toLocaleString('ko-KR')+'까지','error');return;
+    }
+    await SB.from('bans').delete().eq('id',ban.id);
+  }
+  const {data:ex}=await SB.from('room_members').select('id')
+    .eq('room_id',id).eq('user_id',S.user.id).maybeSingle();
+  if(!ex){
+    await SB.from('room_members').insert({room_id:id,user_id:S.user.id,role:'member'});
+    S.joined.push(id);
+  }
+  await enter(room);toast('# '+room.name+' 에 입장했습니다!');
+}
+
+async function enter(room){
+  cleanup();
+  S.room=room;S.msgs=[];S.members=[];S.bans=[];S.myRole=null;
+  S.pinnedMsg=null;S.replyTo=null;S.onlineUsers={};
+  delete S.unread[room.id];
+  render();
+  await Promise.all([loadMsgs(room.id),loadMembers(room.id),loadBans(room.id),loadPinned(room.id)]);
+  const {data:me}=await SB.from('room_members').select('role')
+    .eq('room_id',room.id).eq('user_id',S.user.id).maybeSingle();
+  S.myRole=me?.role||'member';
+  // realtime messages
+  S.channel=SB.channel('room-'+room.id)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:'room_id=eq.'+room.id},async(e)=>{
+      if(S.msgs.find(m=>m.id===e.new.id))return;
+      setTimeout(async()=>{
+        const {data:m}=await SB.from('messages')
+          .select('*, profiles!messages_user_id_fkey(username,ava_color), files(*), reactions(*)')
+          .eq('id',e.new.id).maybeSingle();
+        if(!m||S.msgs.find(x=>x.id===m.id))return;
+        m.files=(m.files||[]).filter(f=>new Date(f.expires_at)>new Date());
+        S.msgs.push(m);
+        renderMsgs();scrollBot();
+        // ping if mentioned
+        const un=S.profile?.username||'';
+        if(un&&m.content&&m.content.includes('@'+un)&&m.user_id!==S.user.id){
+          toast('@멘션되었습니다: '+m.profiles?.username,'info');
+          try{new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAA').play().catch(()=>{});}catch(e){}
+        }
+      },600);
+    })
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'messages',filter:'room_id=eq.'+room.id},async(e)=>{
+      const idx=S.msgs.findIndex(m=>m.id===e.new.id);
+      if(idx!==-1){
+        const {data:m}=await SB.from('messages')
+          .select('*, profiles!messages_user_id_fkey(username,ava_color), files(*), reactions(*)')
+          .eq('id',e.new.id).maybeSingle();
+        if(m){
+          m.files=(m.files||[]).filter(f=>new Date(f.expires_at)>new Date());
+          S.msgs[idx]=m;renderMsgs();
+        }
+      }
+    })
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'messages',filter:'room_id=eq.'+room.id},(e)=>{
+      S.msgs=S.msgs.filter(m=>m.id!==e.old.id);renderMsgs();
+    })
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'reactions',filter:'room_id=eq.'+room.id},()=>{
+      setTimeout(()=>{loadMsgsReactions();},300);
+    })
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'reactions',filter:'room_id=eq.'+room.id},()=>{
+      setTimeout(()=>{loadMsgsReactions();},300);
+    })
+    .subscribe();
+  // presence
+  S.presenceChannel=SB.channel('presence-'+room.id,{config:{presence:{key:S.user.id}}})
+    .on('presence',{event:'sync'},()=>{
+      const state=S.presenceChannel.presenceState();
+      S.onlineUsers={};
+      Object.keys(state).forEach(k=>{if(state[k][0])S.onlineUsers[k]=state[k][0];});
+      renderMemberPanel();
+    })
+    .subscribe(async(status)=>{
+      if(status==='SUBSCRIBED'){
+        await S.presenceChannel.track({user_id:S.user.id,username:S.profile?.username,online_at:Date.now()});
+      }
+    });
+  render();
+  setTimeout(scrollBot,200);
+}
+
+async function leaveRoom(){
+  if(S.myRole==='owner'){toast('방장은 방을 나갈 수 없습니다.','error');return;}
+  await SB.from('room_members').delete().eq('room_id',S.room.id).eq('user_id',S.user.id);
+  S.joined=S.joined.filter(id=>id!==S.room.id);
+  const name=S.room.name;cleanup();
+  S.room=null;S.msgs=[];S.members=[];S.myRole=null;
+  await loadRooms();render();toast('# '+name+' 에서 나갔습니다.');
+}
+
+async function updateRoom(name,desc,tags){
+  const {error}=await SB.from('rooms').update({name,description:desc,tags}).eq('id',S.room.id);
+  if(error){toast('업데이트 실패: '+error.message,'error');return;}
+  S.room={...S.room,name,description:desc,tags};
+  S.rooms=S.rooms.map(r=>r.id===S.room.id?S.room:r);
+  S.modal=null;render();toast('방 설정이 저장되었습니다.');
+}
+
+async function deleteRoom(){
+  if(!confirm('방과 모든 메시지를 삭제하시겠습니까?'))return;
+  const id=S.room.id,name=S.room.name;
+  await SB.from('rooms').delete().eq('id',id);
+  cleanup();S.room=null;S.msgs=[];S.members=[];
+  S.rooms=S.rooms.filter(r=>r.id!==id);S.joined=S.joined.filter(x=>x!==id);
+  S.modal=null;render();toast('# '+name+' 방이 삭제되었습니다.');
+}
+
+/* ══════════════════════════════════════════
+   MESSAGES
+══════════════════════════════════════════ */
+async function loadMsgs(roomId){
+  const {data}=await SB.from('messages')
+    .select('*, profiles!messages_user_id_fkey(username,ava_color), files(*), reactions(*)')
+    .eq('room_id',roomId).order('created_at',{ascending:true}).limit(80);
+  const now=new Date();
+  S.msgs=(data||[]).map(m=>({...m,files:(m.files||[]).filter(f=>new Date(f.expires_at)>now)}));
+}
+
+async function loadMsgsReactions(){
+  if(!S.room)return;
+  const ids=S.msgs.map(m=>m.id);
+  if(!ids.length)return;
+  const {data}=await SB.from('reactions').select('*').in('message_id',ids);
+  S.msgs=S.msgs.map(m=>({...m,reactions:(data||[]).filter(r=>r.message_id===m.id)}));
+  renderMsgs();
+}
+
+async function loadPinned(roomId){
+  const {data}=await SB.from('messages')
+    .select('*, profiles!messages_user_id_fkey(username,ava_color)')
+    .eq('room_id',roomId).eq('is_pinned',true).maybeSingle();
+  S.pinnedMsg=data||null;
+}
+
+async function pinMsg(id,val){
+  if(S.pinnedMsg&&S.pinnedMsg.id!==id){
+    await SB.from('messages').update({is_pinned:false}).eq('id',S.pinnedMsg.id);
+  }
+  await SB.from('messages').update({is_pinned:val}).eq('id',id);
+  await loadPinned(S.room.id);
+  S.msgs=S.msgs.map(m=>({...m,is_pinned:m.id===id?val:(m.id===S.pinnedMsg?.id?false:m.is_pinned)}));
+  renderMsgs();renderPinned();
+  toast(val?'📌 메시지가 고정되었습니다.':'고정 해제되었습니다.');
+}
+
+async function sendMsg(){
+  if(S.sending)return;
+  const el=document.getElementById('ci');
+  const text=el?.value?.trim()||'';
+  if(!text&&S.files.length===0)return;
+  if(text.length>MAX_MSG){toast('메시지는 '+MAX_MSG+'자 이내로 작성하세요.','error');return;}
+  const now=Date.now();
+  const wait=Math.ceil((COOLDOWN-(now-S.lastSend))/1000);
+  if(now-S.lastSend<COOLDOWN){toast(wait+'초 후에 보낼 수 있습니다.','error');return;}
+  const {data:ban}=await SB.from('bans').select('*')
+    .eq('room_id',S.room.id).eq('user_id',S.user.id).maybeSingle();
+  if(ban&&(ban.permanent||(ban.expires_at&&new Date(ban.expires_at)>new Date()))){
+    toast('차단된 상태에서는 메시지를 보낼 수 없습니다.','error');return;
+  }
+  // fingerprint ban
+  const {data:fpBan}=await SB.from('device_bans').select('id').eq('fingerprint',FINGERPRINT).maybeSingle();
+  if(fpBan){toast('이 기기는 메시지 전송이 제한되어 있습니다.','error');return;}
+  S.sending=true;S.lastSend=now;
+  const btnEl=document.getElementById('send-btn');
+  if(btnEl){btnEl.textContent='전송 중…';btnEl.disabled=true;}
+  const insertData={
+    room_id:S.room.id,user_id:S.user.id,
+    content:text||(S.files.length>0?'(파일 첨부)':''),
+  };
+  if(S.replyTo)insertData.reply_to=S.replyTo.id;
+  const {data:msg,error}=await SB.from('messages').insert(insertData).select().single();
+  if(error){toast('전송 실패: '+error.message,'error');S.sending=false;if(btnEl){btnEl.textContent='전송 ↵';btnEl.disabled=false;}return;}
+  if(S.files.length>0)await uploadFiles(msg.id,[...S.files]);
+  S.files=[];S.replyTo=null;
+  if(el){el.value='';el.style.height='auto';}
+  updateCC('');
+  const fp=document.getElementById('fp');if(fp)fp.innerHTML='';
+  const rp=document.getElementById('rp');if(rp)rp.remove();
+  S.sending=false;
+  if(btnEl){btnEl.textContent='전송 ↵';btnEl.disabled=false;}
+}
+
+async function delMsg(id){
+  if(!confirm('이 메시지를 삭제하시겠습니까?'))return;
+  await SB.from('messages').delete().eq('id',id);
+  S.msgs=S.msgs.filter(m=>m.id!==id);renderMsgs();
+}
+
+async function reactMsg(msgId,emoji){
+  closeEmojiPicker();
+  const existing=S.msgs.find(m=>m.id===msgId)?.reactions?.find(r=>r.user_id===S.user.id&&r.emoji===emoji);
+  if(existing){
+    await SB.from('reactions').delete().eq('id',existing.id);
+  }else{
+    await SB.from('reactions').insert({message_id:msgId,user_id:S.user.id,emoji,room_id:S.room.id});
+  }
+}
+
+function openEmojiPicker(msgId,x,y){
+  S.emojiPicker={msgId,x,y};
+  let ep=document.getElementById('ep');
+  if(!ep){
+    ep=document.createElement('div');
+    ep.id='ep';ep.className='emoji-picker';
+    document.body.appendChild(ep);
+  }
+  ep.innerHTML=`<div class="emoji-grid">${EMOJIS.map(e=>`<button class="ep-btn" onclick="reactMsg('${msgId}','${e}')">${e}</button>`).join('')}</div>`;
+  // position
+  const pw=200,ph=130;
+  let px=x,py=y;
+  if(px+pw>window.innerWidth)px=window.innerWidth-pw-10;
+  if(py+ph>window.innerHeight)py=y-ph-10;
+  ep.style.left=px+'px';ep.style.top=py+'px';
+  ep.style.display='block';
+  const closer=(e)=>{if(!ep.contains(e.target)){closeEmojiPicker();document.removeEventListener('click',closer);}};
+  setTimeout(()=>document.addEventListener('click',closer),50);
+}
+
+function closeEmojiPicker(){
+  const ep=document.getElementById('ep');
+  if(ep)ep.style.display='none';
+  S.emojiPicker=null;
+}
+
+function setReply(msg){
+  S.replyTo=msg;
+  const ia=document.querySelector('.inp-area');
+  if(!ia)return;
+  let rp=document.getElementById('rp');
+  if(!rp){
+    rp=document.createElement('div');rp.id='rp';rp.className='reply-preview';
+    ia.insertBefore(rp,ia.querySelector('.file-pre'));
+  }
+  rp.innerHTML=`<div class="rp-bar"></div>
+    <div class="rp-text"><span style="color:var(--text2);font-weight:600">@${esc(msg.profiles?.username||'?')}</span>: ${esc((msg.content||'').slice(0,60))}</div>
+    <button class="btn btn-ghost btn-xs" onclick="S.replyTo=null;this.parentElement.remove()">✕</button>`;
+  document.getElementById('ci')?.focus();
+}
+
+/* ══════════════════════════════════════════
+   SEARCH
+══════════════════════════════════════════ */
+async function searchMsgs(q){
+  S.search=q;
+  if(!q||q.length<2){S.searchResults=[];S.searchOpen=!!q;renderSearch();return;}
+  S.searchOpen=true;
+  const {data}=await SB.from('messages')
+    .select('*, profiles!messages_user_id_fkey(username,ava_color)')
+    .eq('room_id',S.room.id).ilike('content','%'+q+'%').limit(30).order('created_at',{ascending:false});
+  S.searchResults=data||[];
+  renderSearch();
+}
+
+function renderSearch(){
+  const existing=document.getElementById('search-panel');
+  if(!S.searchOpen||!S.room){if(existing)existing.remove();return;}
+  const results=S.searchResults;
+  const html=results.length===0
+    ?`<div class="empty" style="margin-top:60px"><div class="empty-icon">🔍</div><div class="empty-t">검색 결과 없음</div><div class="empty-s">"${esc(S.search)}"에 대한 메시지가 없습니다</div></div>`
+    :results.map(m=>`
+      <div class="search-result-item" onclick="jumpToMsg('${m.id}')">
+        <div class="ava" style="background:${avaBg(m.profiles?.username,m.profiles?.ava_color)}">${(m.profiles?.username||'?')[0].toUpperCase()}</div>
+        <div class="sr-content">
+          <div class="sr-author">${esc(m.profiles?.username||'?')}</div>
+          <div class="sr-text">${fmt(m.content,S.search)}</div>
+          <div class="sr-meta">${ftime(m.created_at)}</div>
+        </div>
+      </div>`).join('');
+  if(!existing){
+    const panel=document.createElement('div');panel.id='search-panel';panel.className='search-panel';
+    panel.innerHTML=`<div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg2)">
+      <span style="font-size:12px;font-weight:600;color:var(--text2)">${results.length}개의 결과 — "${esc(S.search)}"</span>
+      <button class="btn btn-ghost btn-sm" onclick="S.searchOpen=false;S.search='';document.getElementById('search-panel')?.remove()">닫기</button>
+    </div><div class="search-results">${html}</div>`;
+    const main=document.querySelector('.main');
+    if(main)main.style.position='relative',main.appendChild(panel);
+  }else{
+    existing.querySelector('.search-results').innerHTML=html;
+    existing.querySelector('span').textContent=results.length+'개의 결과 — "'+S.search+'"';
+  }
+}
+
+function jumpToMsg(id){
+  S.searchOpen=false;document.getElementById('search-panel')?.remove();
+  const el=document.getElementById('m-'+id);
+  if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.style.background='rgba(245,183,49,.12)';setTimeout(()=>{el.style.background='';},2000);}
+}
+
+/* ══════════════════════════════════════════
+   FILES
+══════════════════════════════════════════ */
+async function uploadFiles(msgId,files){
+  for(const file of files){
+    const safe=file.name.replace(/[^a-zA-Z0-9._\-]/g,'_');
+    const path=S.room.id+'/'+msgId+'/'+Date.now()+'_'+safe;
+    const {error:ue}=await SB.storage.from(BUCKET).upload(path,file);
+    if(ue){console.error('Upload error:',ue);continue;}
+    const {data:{publicUrl}}=SB.storage.from(BUCKET).getPublicUrl(path);
+    await SB.from('files').insert({
+      room_id:S.room.id,message_id:msgId,user_id:S.user.id,
+      file_name:file.name,file_url:publicUrl,file_size:file.size,
+      expires_at:new Date(Date.now()+FILE_TTL).toISOString()
+    });
+  }
+}
+
+function pickFiles(e){
+  const chosen=Array.from(e.target.files);
+  const room=MAX_FILES-S.files.length;let added=0;
+  for(const f of chosen){
+    if(added>=room){toast('파일은 최대 '+MAX_FILES+'개까지 첨부 가능합니다.','error');break;}
+    const ext='.'+((f.name.split('.').pop()||'').toLowerCase());
+    if(!EXTS.includes(ext)){toast('허용되지 않는 형식: '+f.name,'error');continue;}
+    if(f.size>MAX_FILE){toast('100MB 초과: '+f.name,'error');continue;}
+    S.files.push(f);added++;
+  }
+  e.target.value='';renderFilePre();
+}
+function rmFile(i){S.files.splice(i,1);renderFilePre();}
+function renderFilePre(){
+  const el=document.getElementById('fp');if(!el)return;
+  el.style.display=S.files.length?'flex':'none';
+  el.innerHTML=S.files.map((f,i)=>`
+    <div class="fp-item">${ficon(f.name)} ${esc(f.name)}
+      <span style="color:var(--text3)">${fsize(f.size)}</span>
+      <span class="fp-rm" onclick="rmFile(${i})">✕</span>
+    </div>`).join('');
+}
+
+/* ══════════════════════════════════════════
+   ADMIN
+══════════════════════════════════════════ */
+async function loadMembers(roomId){
+  const {data}=await SB.from('room_members')
+    .select('*, profiles!room_members_user_id_fkey(username,ava_color)').eq('room_id',roomId);
+  S.members=data||[];
+}
+async function loadBans(roomId){
+  const {data}=await SB.from('bans')
+    .select('*, profiles!bans_user_id_fkey(username)').eq('room_id',roomId);
+  S.bans=data||[];
+}
+
+async function banUser(uid,uname,perm,hours,deviceBan){
+  const exp=perm?null:new Date(Date.now()+hours*3600000).toISOString();
+  const {error}=await SB.from('bans').upsert(
+    {room_id:S.room.id,user_id:uid,banned_by:S.user.id,permanent:perm,expires_at:exp},
+    {onConflict:'room_id,user_id'}
+  );
+  if(error){toast('차단 실패: '+error.message,'error');return;}
+  await SB.from('room_members').delete().eq('room_id',S.room.id).eq('user_id',uid);
+  // device ban
+  if(deviceBan){
+    // get user's fingerprint from device_sessions table
+    const {data:sess}=await SB.from('device_sessions').select('fingerprint').eq('user_id',uid).maybeSingle();
+    if(sess?.fingerprint){
+      await SB.from('device_bans').upsert({fingerprint:sess.fingerprint,banned_by:S.user.id,user_id:uid},{onConflict:'fingerprint'});
+    }
+  }
+  S.members=S.members.filter(m=>m.user_id!==uid);
+  await loadBans(S.room.id);
+  S.modal={t:'mb'};render();
+  toast(uname+' '+(perm?'영구 차단':'기간 차단')+(deviceBan?' + 기기 차단':'')+' 완료');
+}
+
+async function unban(uid,uname){
+  await SB.from('bans').delete().eq('room_id',S.room.id).eq('user_id',uid);
+  await SB.from('device_bans').delete().eq('user_id',uid);
+  S.bans=S.bans.filter(b=>b.user_id!==uid);render();toast(uname+' 차단 해제 완료');
+}
+
+async function setVice(uid,makeVice){
+  const role=makeVice?'vice_owner':'member';
+  await SB.from('room_members').update({role}).eq('room_id',S.room.id).eq('user_id',uid);
+  S.members=S.members.map(m=>m.user_id===uid?{...m,role}:m);
+  render();toast(makeVice?'⭐ 부방장 지정 완료':'부방장 해제 완료');
+}
+
+async function updateProfile(statusMsg,avaColor){
+  const {error}=await SB.from('profiles').update({status_msg:statusMsg,ava_color:avaColor}).eq('id',S.user.id);
+  if(error){toast('업데이트 실패','error');return;}
+  S.profile={...S.profile,status_msg:statusMsg,ava_color:avaColor};
+  S.modal=null;render();toast('프로필이 업데이트되었습니다.');
+}
+
+/* ══════════════════════════════════════════
+   TYPING INDICATOR
+══════════════════════════════════════════ */
+async function setTyping(){
+  if(!S.room||!S.user)return;
+  clearTimeout(S.typingTimer);
+  await SB.from('typing').upsert({room_id:S.room.id,user_id:S.user.id,username:S.profile?.username,ts:Date.now()},{onConflict:'room_id,user_id'});
+  S.typingTimer=setTimeout(async()=>{
+    await SB.from('typing').delete().eq('room_id',S.room?.id).eq('user_id',S.user?.id);
+  },3000);
+}
+
+/* ══════════════════════════════════════════
+   SESSION TRACKING (for device ban)
+══════════════════════════════════════════ */
+async function trackSession(){
+  if(!S.user)return;
+  await SB.from('device_sessions').upsert(
+    {user_id:S.user.id,fingerprint:FINGERPRINT,last_seen:new Date().toISOString()},
+    {onConflict:'user_id'}
+  );
+}
+
+/* ══════════════════════════════════════════
+   CLEANUP
+══════════════════════════════════════════ */
+function cleanup(){
+  if(S.channel){SB.removeChannel(S.channel);S.channel=null;}
+  if(S.presenceChannel){SB.removeChannel(S.presenceChannel);S.presenceChannel=null;}
+  clearTimeout(S.typingTimer);
+}
+
+/* ══════════════════════════════════════════
+   MODAL HELPERS
+══════════════════════════════════════════ */
+const M={
+  cr:()=>{S.modal={t:'cr'};render();},
+  mb:()=>{S.modal={t:'mb'};render();},
+  bn:(uid,un)=>{S.modal={t:'bn',uid,un};render();},
+  rs:()=>{S.modal={t:'rs'};render();},
+  su:()=>{S.modal={t:'su'};render();},
+  pf:()=>{S.modal={t:'pf'};render();},
+  x:()=>{S.modal=null;render();},
+};
+
+/* ══════════════════════════════════════════
+   RENDER MASTER
+══════════════════════════════════════════ */
+function render(){
+  const app=document.getElementById('app');if(!app)return;
+  if(!S.user){
+    app.innerHTML=rAuth()+(S.modal?rModal():'');
+    bindAuth();return;
+  }
+  app.innerHTML=rSidebar()+(S.room?rChat():rHome())+(S.membersPanelOpen&&S.room?rMembersPanel():'')+(S.modal?rModal():'');
+  bindMain();
+  if(S.searchOpen&&S.room)setTimeout(renderSearch,50);
+}
+
+/* ─── AUTH ──────────────────────────────── */
+function rAuth(){
+  const si=S.authTab==='in';
+  return `<div class="auth-wrap">
+<div class="auth-card">
+  <div class="auth-logo">
+    <div class="auth-logo-mark">📱</div>
+    <div class="auth-title">Android<span>Dev</span></div>
+    <div class="auth-sub">Android 개발자 커뮤니티</div>
+  </div>
+  <div class="auth-tabs">
+    <div class="auth-tab ${si?'on':''}" onclick="S.authTab='in';S.authErr='';S.authOk='';render()">로그인</div>
+    <div class="auth-tab ${!si?'on':''}" onclick="S.authTab='up';S.authErr='';S.authOk='';render()">회원가입</div>
+  </div>
+  <div class="field"><label class="lbl">이메일</label>
+    <input class="inp${S.authErr?' inp-err':''}" id="ae" type="email" placeholder="you@gmail.com" autocomplete="email" onkeydown="if(event.key==='Enter')doAuth()">
+  </div>
+  <div class="field"><label class="lbl">비밀번호</label>
+    <input class="inp${S.authErr?' inp-err':''}" id="ap" type="password" placeholder="••••••••" autocomplete="${si?'current-password':'new-password'}" oninput="${!si?'showPwStrength(this.value)':''}" onkeydown="if(event.key==='Enter')doAuth()">
+    ${!si?`<div class="strength-bar"><div class="strength-fill" id="sf"></div></div>
+    <div class="strength-label" id="sl" style="color:var(--text3)">비밀번호 강도</div>`:''}
+  </div>
+  ${!si?`<div class="field">
+    <label class="lbl">닉네임</label>
+    <input class="inp${S.authErr?' inp-err':''}" id="au" type="text" placeholder="예: dev_kim, (android)hong" maxlength="20" autocomplete="username" onkeydown="if(event.key==='Enter')doAuth()" oninput="this.value=this.value.replace(/\\s/g,'')">
+    <div style="font-size:10px;color:var(--text3);margin-top:4px">2~20자 · 한글/영문/숫자 · _ ( ) - 허용</div>
+  </div>`:''}
+  ${S.authErr?`<div class="err-box"><span>⚠</span><span>${esc(S.authErr)}</span></div>`:''}
+  ${S.authOk?`<div class="ok-box">✓ ${esc(S.authOk)}</div>`:''}
+  <button class="btn btn-primary btn-full" style="margin-top:18px" onclick="doAuth()">${si?'로그인 →':'계정 만들기 →'}</button>
+  <div class="auth-footer">첫 사용 전 <a href="#" onclick="M.su();return false">Supabase DB 설정</a>이 필요합니다</div>
+</div>
+</div>`;
+}
+
+function showPwStrength(pw){
+  const sf=document.getElementById('sf'),sl=document.getElementById('sl');
+  if(!sf||!sl)return;
+  let score=0;
+  if(pw.length>=8)score++;if(pw.length>=12)score++;
+  if(/[A-Z]/.test(pw))score++;if(/[0-9]/.test(pw))score++;if(/[^a-zA-Z0-9]/.test(pw))score++;
+  const levels=[
+    {w:'20%',color:'var(--red)',label:'매우 약함'},
+    {w:'40%',color:'var(--orange)',label:'약함'},
+    {w:'60%',color:'var(--yellow)',label:'보통'},
+    {w:'80%',color:'var(--accent)',label:'강함'},
+    {w:'100%',color:'var(--green)',label:'매우 강함'},
+  ];
+  const lv=levels[Math.max(0,Math.min(score-1,4))]||levels[0];
+  sf.style.width=lv.w;sf.style.background=lv.color;sl.textContent=lv.label;sl.style.color=lv.color;
+}
+function bindAuth(){
+  const theme=localStorage.getItem('adc-theme')||'dark';
+  S.theme=theme;document.body.setAttribute('data-theme',theme);
+  setTimeout(()=>document.getElementById('ae')?.focus(),50);
+}
+function doAuth(){
+  const email=document.getElementById('ae')?.value?.trim();
+  const pw=document.getElementById('ap')?.value||'';
+  if(S.authTab==='in'){
+    if(!email||!pw){S.authErr='이메일과 비밀번호를 입력하세요.';render();return;}
+    signIn(email,pw);
+  }else{
+    const uname=document.getElementById('au')?.value?.trim()||'';
+    if(!email||!pw||!uname){S.authErr='모든 필드를 입력하세요.';render();return;}
+    signUp(email,pw,uname);
+  }
+}
+
+/* ─── SIDEBAR ───────────────────────────── */
+function rSidebar(){
+  const joined=S.rooms.filter(r=>S.joined.includes(r.id));
+  const others=S.rooms.filter(r=>!S.joined.includes(r.id));
+  const un=S.profile?.username||'...';
+  const avaColor=S.profile?.ava_color||avaBg(un);
+  return `<div class="sidebar">
+  <div class="sb-top">
+    <div class="logo-mark">📱</div>
+    <div class="logo-text">Android<span>Dev</span></div>
+    <button class="btn btn-icon btn-ghost" data-tip="${S.theme==='dark'?'라이트 모드':'다크 모드'}" onclick="themeToggle()" style="margin-left:auto;flex-shrink:0">${S.theme==='dark'?'☀️':'🌙'}</button>
+  </div>
+  <div class="user-row" onclick="M.pf()">
+    <div class="ava" style="background:${avaColor}">
+      ${un[0].toUpperCase()}
+      <div class="ava-badge"></div>
+    </div>
+    <div style="flex:1;min-width:0">
+      <div class="uname">${esc(un)}</div>
+      <div class="status-text">${esc(S.profile?.status_msg||'')}<span class="online-dot" style="margin-left:${S.profile?.status_msg?'6':'0'}px">${S.profile?.status_msg?'':'온라인'}</span></div>
+    </div>
+    <span style="font-size:11px;color:var(--text3)">✏️</span>
+  </div>
+  <div class="rooms-list">
+    ${joined.length?`<div class="sec-label"><span>내 채팅방</span><span style="color:var(--text3)">${joined.length}</span></div>
+      ${joined.map(r=>`
+        <div class="room-li ${S.room?.id===r.id?'on':''}" onclick="handleRoomClick('${r.id}')">
+          <span class="room-hash">#</span>
+          <span class="rname">${esc(r.name)}</span>
+          ${(S.unread[r.id]||0)>0?`<span class="room-unread">${S.unread[r.id]}</span>`:''}
+        </div>`).join('')}`:''}
+    ${others.length?`<div class="sec-label" style="margin-top:8px"><span>다른 방</span><span style="color:var(--text3)">${others.length}</span></div>
+      ${others.map(r=>`
+        <div class="room-li" onclick="handleRoomClick('${r.id}')">
+          <span class="room-hash">#</span>
+          <span class="rname">${esc(r.name)}</span>
+          <span class="join-pill">입장</span>
+        </div>`).join('')}`:''}
+    ${S.rooms.length===0?`<div style="padding:14px 7px;font-size:12px;color:var(--text3)">방이 없습니다</div>`:''}
+  </div>
+  <div class="sb-bottom">
+    <button class="btn btn-primary btn-sm btn-full" onclick="M.cr()">＋ 방 만들기</button>
+    <button class="btn btn-ghost btn-sm btn-full" onclick="signOut()">로그아웃</button>
+  </div>
+</div>`;
+}
+
+/* ─── HOME ──────────────────────────────── */
+function rHome(){
+  const tags=[...new Set(S.rooms.flatMap(r=>r.tags||[]))];
+  let filtered=S.rooms;
+  if(S.filterTag)filtered=filtered.filter(r=>(r.tags||[]).includes(S.filterTag));
+  return `<div class="home-page">
+  <div class="home-hero">
+    <div class="home-title">Android 개발자를<br><span class="grad">함께 만드는</span> 커뮤니티</div>
+    <div class="home-sub">실시간 채팅, 파일 공유, 코드 리뷰까지 — 개발자를 위한 공간</div>
+  </div>
+  ${tags.length?`<div class="home-filters">
+    <div class="filter-btn ${!S.filterTag?'on':''}" onclick="S.filterTag='';render()">전체</div>
+    ${tags.map(t=>`<div class="filter-btn ${S.filterTag===t?'on':''}" onclick="S.filterTag='${esc(t)}';render()">${esc(t)}</div>`).join('')}
+  </div>`:''}
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div style="font-size:13px;font-weight:600;color:var(--text2)">${filtered.length}개의 방</div>
+    <button class="btn btn-primary btn-sm" onclick="M.cr()">＋ 방 만들기</button>
+  </div>
+  ${filtered.length===0?`<div class="empty" style="margin-top:60px">
+    <div class="empty-icon">💬</div>
+    <div class="empty-t">방이 없습니다</div>
+    <div class="empty-s">첫 번째 방을 만들어 커뮤니티를 시작해보세요</div>
+    <button class="btn btn-primary" style="margin-top:16px" onclick="M.cr()">＋ 방 만들기</button>
+  </div>`:`<div class="rooms-grid">
+    ${filtered.map(r=>`
+      <div class="room-card" onclick="handleRoomClick('${r.id}')">
+        <div class="rc-top">
+          <div class="rc-name">${esc(r.name)}</div>
+          <span class="badge ${S.joined.includes(r.id)?'badge-green':'badge-blue'}">${S.joined.includes(r.id)?'참여중':'입장'}</span>
+        </div>
+        ${(r.tags||[]).length?`<div class="rc-tags">${(r.tags||[]).map(t=>`<span class="badge badge-gray">${esc(t)}</span>`).join('')}</div>`:''}
+        <div class="rc-desc">${esc(r.description||'설명 없음')}</div>
+        <div class="rc-foot">
+          <div class="rc-meta">
+            <span>👑 ${esc((r.owner_id||'').slice(0,8))}…</span>
+          </div>
+        </div>
+      </div>`).join('')}
+  </div>`}
+</div>`;
+}
+
+/* ─── CHAT ──────────────────────────────── */
+function rChat(){
+  const isOwner=S.myRole==='owner';
+  const isAdmin=isOwner||S.myRole==='vice_owner';
+  const onlineCount=Object.keys(S.onlineUsers).length;
+  return `<div class="main">
+  <div class="chat-header">
+    <div class="ch-info">
+      <div class="ch-name">
+        <span class="ch-hash">#</span>${esc(S.room.name)}
+        ${S.myRole==='owner'?'<span class="badge badge-yellow">방장</span>':''}
+        ${S.myRole==='vice_owner'?'<span class="badge badge-green">부방장</span>':''}
+      </div>
+      ${S.room.description?`<div class="ch-div"></div><div class="ch-desc">${esc(S.room.description)}</div>`:''}
+    </div>
+    <div class="ch-actions">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input class="search-inp" placeholder="메시지 검색…" value="${esc(S.search)}" oninput="searchMsgs(this.value)" style="width:180px">
+      </div>
+      ${onlineCount?`<div class="members-count"><span class="online-dot">${onlineCount}명</span></div>`:''}
+      <button class="btn btn-icon btn-ghost" data-tip="멤버 패널" onclick="S.membersPanelOpen=!S.membersPanelOpen;render()" style="font-size:14px">👥</button>
+      ${isAdmin?`<button class="btn btn-ghost btn-sm" onclick="M.mb()">관리</button>`:''}
+      ${isOwner?`<button class="btn btn-ghost btn-sm" onclick="M.rs()">⚙️</button>`:''}
+      ${!isOwner?`<button class="btn btn-ghost btn-sm" onclick="leaveRoom()">← 나가기</button>`:''}
+    </div>
+  </div>
+  ${S.pinnedMsg?`<div class="pinned-banner" onclick="jumpToMsg('${S.pinnedMsg.id}')">
+    📌 <strong>고정 메시지</strong>: ${esc((S.pinnedMsg.content||'').slice(0,60))}${(S.pinnedMsg.content||'').length>60?'…':''}
+  </div>`:''}
+  <div class="msgs-wrap" id="msgs">${rMsgList()}</div>
+  <div class="typing-bar" id="typing-bar"></div>
+  <div class="inp-area">
+    <div class="file-pre" id="fp" style="display:none;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
+    <div class="inp-box">
+      <div class="inp-tools">
+        <button class="btn btn-icon btn-ghost" data-tip="파일 첨부" onclick="document.getElementById('fi').click()" style="font-size:15px">📎</button>
+        <input type="file" id="fi" style="display:none" multiple accept="${EXTS.join(',')}" onchange="pickFiles(event)">
+        <button class="btn btn-icon btn-ghost" data-tip="서식 도움말" onclick="toggleFmt(event)" style="font-size:14px">𝘼</button>
+      </div>
+      <textarea id="ci" class="chat-ta" placeholder="# ${esc(S.room.name)} 에 메시지 입력… (@멘션, **굵게**, \`코드\`)"
+        rows="1"
+        oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,150)+'px';updateCC(this.value);setTyping();handleMention(this)"
+        onkeydown="handleKeydown(event)"></textarea>
+      <div class="inp-right">
+        <span class="cc" id="cc">0/${MAX_MSG}</span>
+        <button class="btn btn-primary btn-sm" id="send-btn" onclick="sendMsg()">전송 ↵</button>
+      </div>
+    </div>
+    <div class="fmt-panel ${S.fmtOpen?'open':''}" id="fmtp">
+      <div class="fmt-title">텍스트 서식</div>
+      <div class="fmt-grid">
+        <div class="fmt-row"><span class="fmt-code">**텍스트**</span> → <strong>굵게</strong></div>
+        <div class="fmt-row"><span class="fmt-code">_텍스트_</span> → <em>기울임</em></div>
+        <div class="fmt-row"><span class="fmt-code">***텍스트***</span> → <strong><em>굵게+기울임</em></strong></div>
+        <div class="fmt-row"><span class="fmt-code">-텍스트-</span> → <del>취소선</del></div>
+        <div class="fmt-row"><span class="fmt-code">_*텍스트*_</span> → <u>밑줄</u></div>
+        <div class="fmt-row"><span class="fmt-code">\`코드\`</span> → <span class="code-inline">코드</span></div>
+        <div class="fmt-row"><span class="fmt-code">\`\`\`코드 블록\`\`\`</span></div>
+        <div class="fmt-row"><span class="fmt-code">&lt;red&gt;"텍스트"</span> → <span style="color:red">색상</span></div>
+      </div>
+      <div style="margin-top:8px;font-size:10px;color:var(--text2);margin-bottom:4px">지원 색상 (${COLORS.length}가지):</div>
+      <div class="colors-wrap">${COLORS.map(c=>`<span class="cswatch" style="color:${c};border-color:${c}40">${c}</span>`).join('')}</div>
+    </div>
+    <div class="inp-hint">
+      <span>↵ 전송 · Shift+↵ 줄바꿈 · @멘션 지원</span>
+      <span>파일 ${MAX_FILES}개 · 7일 후 만료</span>
+    </div>
+  </div>
+</div>`;
+}
+
+function handleKeydown(e){
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}
+}
+
+function handleMention(ta){
+  const v=ta.value,pos=ta.selectionStart;
+  const before=v.slice(0,pos);
+  const m=before.match(/@([a-zA-Z0-9가-힣_()\-]*)$/);
+  if(m){
+    const q=m[1].toLowerCase();
+    const matches=S.members.filter(mem=>mem.profiles?.username?.toLowerCase().includes(q)&&mem.user_id!==S.user.id).slice(0,5);
+    showMentionSuggestions(matches,ta);
+  }else{
+    closeMentionSuggestions();
+  }
+}
+
+function showMentionSuggestions(members,ta){
+  let box=document.getElementById('mention-box');
+  if(!box){
+    box=document.createElement('div');box.id='mention-box';
+    box.className='tag-suggestions';
+    box.style.cssText='position:fixed;z-index:100;min-width:200px;';
+    document.body.appendChild(box);
+  }
+  const rect=ta.getBoundingClientRect();
+  box.style.bottom=(window.innerHeight-rect.top+4)+'px';
+  box.style.left=rect.left+'px';
+  if(!members.length){box.style.display='none';return;}
+  box.style.display='block';
+  box.innerHTML=members.map(m=>`
+    <div class="tag-sug-item" onclick="insertMention('${esc(m.profiles?.username||'')}')">
+      <span style="font-weight:600">@${esc(m.profiles?.username||'')}</span>
+      <span style="color:var(--text3);font-size:10px;margin-left:6px">${esc(m.role)}</span>
+    </div>`).join('');
+}
+
+function closeMentionSuggestions(){
+  const b=document.getElementById('mention-box');if(b)b.style.display='none';
+}
+
+function insertMention(username){
+  const ta=document.getElementById('ci');if(!ta)return;
+  const v=ta.value,pos=ta.selectionStart;
+  const before=v.slice(0,pos);
+  const after=v.slice(pos);
+  const newBefore=before.replace(/@[a-zA-Z0-9가-힣_()\-]*$/,'@'+username+' ');
+  ta.value=newBefore+after;
+  ta.focus();ta.setSelectionRange(newBefore.length,newBefore.length);
+  closeMentionSuggestions();
+}
+
+function rMsgList(){
+  if(S.msgs.length===0)return`<div class="empty"><div class="empty-icon">💬</div><div class="empty-t">아직 메시지가 없습니다</div><div class="empty-s">첫 번째 메시지를 남겨보세요!</div></div>`;
+  const isAdmin=S.myRole==='owner'||S.myRole==='vice_owner';
+  let prevDate='',prevUser='';
+  return S.msgs.map(m=>{
+    const mem=S.members.find(x=>x.user_id===m.user_id);
+    const role=mem?.role||'member';
+    const isMe=m.user_id===S.user?.id;
+    const canDel=isMe||isAdmin;
+    const canPin=isAdmin;
+    const un=m.profiles?.username||'알 수 없음';
+    const avaColor=m.profiles?.ava_color||avaBg(un);
+    const nc=role==='owner'?'msg-name owner':role==='vice_owner'?'msg-name vice_owner':'msg-name';
+    const rt=role==='owner'?'<span class="role-tag rt-owner">방장</span>':role==='vice_owner'?'<span class="role-tag rt-vice">부방장</span>':'';
+    const filesHtml=(m.files||[]).length?`<div class="msg-files">${m.files.map(f=>`
+      <a href="${esc(f.file_url)}" target="_blank" rel="noopener" class="file-chip">
+        ${ficon(f.file_name)} ${esc(f.file_name)}<span class="file-sz">${fsize(f.file_size)}</span>
+      </a>`).join('')}</div>`:'';
+    // reactions
+    const rxGroup={};
+    (m.reactions||[]).forEach(r=>{if(!rxGroup[r.emoji])rxGroup[r.emoji]=[];rxGroup[r.emoji].push(r);});
+    const rxHtml=Object.keys(rxGroup).length?`<div class="reactions">
+      ${Object.entries(rxGroup).map(([emoji,arr])=>`
+        <div class="reaction ${arr.find(r=>r.user_id===S.user?.id)?'mine':''}" onclick="reactMsg('${m.id}','${emoji}')" title="${arr.length}명이 반응했습니다">
+          ${emoji}<span class="reaction-count">${arr.length}</span>
+        </div>`).join('')}
+    </div>`:'';
+    const d=new Date(m.created_at).toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'});
+    const divider=d!==prevDate?`<div class="date-div">${d}</div>`:'';
+    prevDate=d;
+    const sameUser=prevUser===m.user_id;prevUser=m.user_id;
+    const replyHtml=m.reply_to?`<div style="padding:4px 8px;margin-bottom:3px;border-left:2px solid var(--border2);color:var(--text3);font-size:11px;cursor:pointer" onclick="jumpToMsg('${m.reply_to}')">↳ 답장</div>`:'';
+    return divider+`
+<div class="msg${m.is_pinned?' pinned':''}" id="m-${m.id}">
+  <div class="msg-left">${!sameUser||d!==prevDate?
+    `<div class="ava ava-lg" style="background:${avaColor}">${un[0].toUpperCase()}</div>`
+    :`<div style="width:38px;height:16px;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--text3)">${new Date(m.created_at).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}</div>`}
+  </div>
+  <div class="msg-body">
+    ${!sameUser?`<div class="msg-meta">
+      <span class="${nc}">${esc(un)}</span>${rt}
+      <span class="msg-time">${ftime(m.created_at)}</span>
+    </div>`:''}
+    ${replyHtml}
+    <div class="msg-text">${fmt(m.content)}</div>
+    ${filesHtml}
+    ${rxHtml}
+  </div>
+  <div class="msg-actions">
+    <button class="btn btn-icon btn-ghost" data-tip="이모지 반응" style="font-size:14px" onclick="openEmojiPicker('${m.id}',event.clientX,event.clientY)">😊</button>
+    <button class="btn btn-icon btn-ghost" data-tip="답장" style="font-size:13px" onclick="setReply(${JSON.stringify({id:m.id,content:m.content?.slice(0,60),profiles:{username:m.profiles?.username}}).replace(/"/g,'&quot;')})">↩</button>
+    ${canPin?`<button class="btn btn-icon btn-ghost" data-tip="${m.is_pinned?'고정 해제':'고정'}" style="font-size:13px" onclick="pinMsg('${m.id}',${!m.is_pinned})">${m.is_pinned?'📍':'📌'}</button>`:''}
+    ${canDel?`<button class="btn btn-icon btn-ghost" data-tip="삭제" style="font-size:13px;color:var(--red)" onclick="delMsg('${m.id}')">🗑</button>`:''}
+  </div>
+</div>`;
+  }).join('');
+}
+
+function renderMsgs(){const el=document.getElementById('msgs');if(el)el.innerHTML=rMsgList();}
+function renderPinned(){
+  const el=document.querySelector('.pinned-banner');
+  if(!el)return;
+  if(S.pinnedMsg){
+    el.innerHTML=`📌 <strong>고정 메시지</strong>: ${esc((S.pinnedMsg.content||'').slice(0,60))}${(S.pinnedMsg.content||'').length>60?'…':''}`;
+    el.onclick=()=>jumpToMsg(S.pinnedMsg.id);
+  }
+}
+
+function rMembersPanel(){
+  const members=S.members;
+  return `<div class="members-panel${S.membersPanelOpen?'':' collapsed'}">
+  <div class="mp-title">멤버 (${members.length})</div>
+  <div class="mp-list">
+    ${['owner','vice_owner','member'].map(role=>{
+      const m=members.filter(x=>x.role===role);if(!m.length)return '';
+      const label={owner:'👑 방장',vice_owner:'⭐ 부방장',member:'👤 멤버'}[role];
+      return `<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;padding:8px 7px 3px">${label}</div>
+        ${m.map(mem=>{
+          const un=mem.profiles?.username||'?';
+          const isOnline=!!S.onlineUsers[mem.user_id];
+          return `<div class="mp-item">
+            <div class="ava" style="background:${mem.profiles?.ava_color||avaBg(un)};opacity:${isOnline?1:.5}">
+              ${un[0].toUpperCase()}
+              ${isOnline?'<div class="ava-badge"></div>':''}
+            </div>
+            <div>
+              <div class="mp-uname">${esc(un)}</div>
+              <div class="mp-status">${isOnline?'<span style="color:var(--green)">● 온라인</span>':'오프라인'}</div>
+            </div>
+          </div>`;
+        }).join('')}`;
+    }).join('')}
+  </div>
+</div>`;
+}
+function renderMemberPanel(){const el=document.querySelector('.members-panel');if(el)el.outerHTML=rMembersPanel();}
+
+function toggleFmt(e){e.preventDefault();S.fmtOpen=!S.fmtOpen;const el=document.getElementById('fmtp');if(el)el.className='fmt-panel'+(S.fmtOpen?' open':'');}
+
+function bindMain(){renderFilePre();}
+
+/* ─── MODAL ─────────────────────────────── */
+function rModal(){
+  const m=S.modal;if(!m)return '';
+  let body='';
+  if(m.t==='cr'){
+    body=`<div class="m-title">💬 새 방 만들기</div>
+<div class="field"><label class="lbl">방 이름 *</label>
+  <input class="inp" id="mr-n" placeholder="예: android-help, kotlin-study" maxlength="50" onkeydown="if(event.key==='Enter')doCreateRoom()">
+</div>
+<div class="field"><label class="lbl">설명 (선택)</label>
+  <textarea class="inp" id="mr-d" placeholder="이 방의 주제나 목적을 설명해주세요" maxlength="200" rows="2" style="resize:none"></textarea>
+</div>
+<div class="field">
+  <label class="lbl">태그 (선택)</label>
+  <div style="font-size:11px;color:var(--text3);margin-bottom:6px">관련 기술 태그를 선택하세요</div>
+  <div class="tag-cloud" id="tag-cloud">
+    ${COMMON_TAGS.map(t=>`<span class="tag-chip" onclick="toggleTag(this,'${esc(t)}')">${esc(t)}</span>`).join('')}
+  </div>
+</div>
+<div class="m-foot">
+  <button class="btn btn-ghost" onclick="M.x()">취소</button>
+  <button class="btn btn-primary" onclick="doCreateRoom()">방 만들기</button>
+</div>`;
+
+  }else if(m.t==='mb'){
+    const isOwner=S.myRole==='owner';
+    const isAdmin=isOwner||S.myRole==='vice_owner';
+    body=`<div class="m-title">👥 멤버 관리 <span style="font-size:12px;font-weight:400;color:var(--text2)">${S.members.length}명</span></div>
+${S.members.map(mem=>{
+  const isMe=mem.user_id===S.user.id;
+  const isMemOwner=mem.role==='owner';
+  const un=mem.profiles?.username||'?';
+  const roleLabel={owner:'👑 방장',vice_owner:'⭐ 부방장',member:'👤 멤버'}[mem.role]||'멤버';
+  return `<div class="mem-row">
+    <div class="ava" style="background:${mem.profiles?.ava_color||avaBg(un)}">${un[0].toUpperCase()}</div>
+    <div class="mem-info">
+      <div class="mem-name">${esc(un)}${isMe?' <span style="color:var(--text3);font-size:11px">(나)</span>':''}</div>
+      <div class="mem-role">${roleLabel}</div>
+    </div>
+    ${!isMe&&!isMemOwner&&isAdmin?`<div class="mem-acts">
+      ${isOwner?`<button class="btn btn-green btn-xs" onclick="setVice('${mem.user_id}',${mem.role!=='vice_owner'})">${mem.role==='vice_owner'?'해제':'부방장'}</button>`:''}
+      <button class="btn btn-danger btn-xs" onclick="M.bn('${mem.user_id}','${esc(un)}')">차단</button>
+    </div>`:''}
+  </div>`;}).join('')}
+${S.bans.length?`<hr class="sep">
+<div style="font-size:12px;font-weight:700;color:var(--red);margin-bottom:10px">🚫 차단 목록 (${S.bans.length})</div>
+${S.bans.map(b=>{
+  const un=b.profiles?.username||'?';
+  const exp=b.permanent?'영구 차단':(b.expires_at?new Date(b.expires_at).toLocaleString('ko-KR')+'까지':'기간 차단');
+  return `<div class="ban-row">
+    <div class="ava" style="background:var(--red);opacity:.5">${un[0].toUpperCase()}</div>
+    <div class="mem-info"><div class="mem-name">${esc(un)}</div><div class="mem-role" style="color:var(--red)">${exp}</div></div>
+    ${isAdmin?`<button class="btn btn-ghost btn-xs" onclick="unban('${b.user_id}','${esc(un)}')">해제</button>`:''}
+  </div>`;}).join('')}`:''}
+<div class="m-foot"><button class="btn btn-ghost" onclick="M.x()">닫기</button></div>`;
+
+  }else if(m.t==='bn'){
+    body=`<div class="m-title">🚫 ${esc(m.un)} 차단</div>
+<div class="field"><label class="lbl">차단 유형</label>
+  <div class="radio-g">
+    <label class="radio-l"><input type="radio" name="bt" value="temp" checked onchange="document.getElementById('bh-g').style.display='block'"> 기간 차단</label>
+    <label class="radio-l"><input type="radio" name="bt" value="perm" onchange="document.getElementById('bh-g').style.display='none'"> 영구 차단</label>
+  </div>
+</div>
+<div class="field" id="bh-g">
+  <label class="lbl">차단 기간 (시간)</label>
+  <input class="inp" id="bh" type="number" min="1" max="8760" value="24">
+  <div style="font-size:10px;color:var(--text3);margin-top:3px">1시간=1 · 1일=24 · 1주=168 · 1개월=720</div>
+</div>
+<div class="field">
+  <label class="lbl">기기 차단 (디바이스 핑거프린트)</label>
+  <label class="radio-l"><input type="checkbox" id="dev-ban"> 새 계정 생성도 차단 (같은 기기)</label>
+  <div style="font-size:10px;color:var(--text3);margin-top:3px">⚠️ 해당 기기의 모든 계정이 접근 불가</div>
+</div>
+<div class="m-foot">
+  <button class="btn btn-ghost" onclick="S.modal={t:'mb'};render()">← 돌아가기</button>
+  <button class="btn btn-danger" onclick="doBan('${m.uid}','${esc(m.un)}')">차단 확인</button>
+</div>`;
+
+  }else if(m.t==='rs'){
+    const tags=S.room.tags||[];
+    body=`<div class="m-title">⚙️ 방 설정</div>
+<div class="field"><label class="lbl">방 이름</label>
+  <input class="inp" id="rs-n" value="${esc(S.room.name)}" maxlength="50">
+</div>
+<div class="field"><label class="lbl">설명</label>
+  <textarea class="inp" id="rs-d" maxlength="200" rows="2" style="resize:none">${esc(S.room.description||'')}</textarea>
+</div>
+<div class="field"><label class="lbl">태그</label>
+  <div class="tag-cloud" id="tag-cloud">
+    ${COMMON_TAGS.map(t=>`<span class="tag-chip${tags.includes(t)?' filter-active':''}" onclick="toggleTag(this,'${esc(t)}')">${esc(t)}</span>`).join('')}
+  </div>
+</div>
+<div class="m-foot-l">
+  <button class="btn btn-danger" onclick="deleteRoom()">방 삭제</button>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-ghost" onclick="M.x()">취소</button>
+    <button class="btn btn-primary" onclick="doUpdateRoom()">저장</button>
+  </div>
+</div>`;
+
+  }else if(m.t==='pf'){
+    const un=S.profile?.username||'?';
+    const avaColor=S.profile?.ava_color||avaBg(un);
+    body=`<div class="m-title">✏️ 프로필 편집</div>
+<div class="profile-preview">
+  <div class="ava ava-xl" id="pf-ava" style="background:${avaColor}">${un[0].toUpperCase()}</div>
+  <div>
+    <div style="font-size:15px;font-weight:700">${esc(un)}</div>
+    <div style="font-size:12px;color:var(--text2);margin-top:3px">${esc(S.user?.email||'')}</div>
+  </div>
+</div>
+<div class="field">
+  <label class="lbl">상태 메시지</label>
+  <input class="inp" id="pf-status" placeholder="지금 무엇을 하고 있나요?" maxlength="50" value="${esc(S.profile?.status_msg||'')}">
+</div>
+<div class="field">
+  <label class="lbl">아바타 색상</label>
+  <div class="ava-picker" id="ava-picker">
+    ${AVA_COLORS.map(c=>`<div class="ava-swatch${c===avaColor?' on':''}" style="background:${c}" onclick="selectAvaColor(this,'${c}')"></div>`).join('')}
+  </div>
+</div>
+<div class="m-foot">
+  <button class="btn btn-ghost" onclick="M.x()">취소</button>
+  <button class="btn btn-primary" onclick="doUpdateProfile()">저장</button>
+</div>`;
+
+  }else if(m.t==='su'){
+    body=`<div class="m-title">🔧 Supabase 설정 가이드</div>
+<p style="font-size:12px;color:var(--text2);margin-bottom:4px"><strong>1단계</strong> — SQL Editor에서 아래 SQL 실행:</p>
+<div class="sql-pre" id="sqlpre">${esc(getSetupSQL())}</div>
+<p style="font-size:12px;color:var(--text2);margin-top:10px"><strong>2단계</strong> — Storage → New Bucket → 이름: <code style="color:var(--accent2)">chat-files</code> → <strong>Public</strong> ✓</p>
+<p style="font-size:12px;color:var(--text2);margin-top:6px"><strong>3단계</strong> — Auth → Email → <strong>Confirm email OFF</strong> (개발용)</p>
+<div class="m-foot">
+  <button class="btn btn-ghost" onclick="navigator.clipboard.writeText(document.getElementById('sqlpre').textContent).then(()=>toast('SQL 복사됨!'))">SQL 복사</button>
+  <button class="btn btn-primary" onclick="M.x()">확인</button>
+</div>`;
+  }
+  return`<div class="m-overlay" onclick="if(event.target===this)M.x()"><div class="modal${m.t==='su'?' modal-lg':''}">${body}</div></div>`;
+}
+
+/* ─── MODAL ACTIONS ────────────────────── */
+let selectedTags=[];
+function toggleTag(el,tag){
+  if(el.classList.contains('filter-active')){
+    el.classList.remove('filter-active');
+    selectedTags=selectedTags.filter(t=>t!==tag);
+  }else{
+    el.classList.add('filter-active');
+    selectedTags.push(tag);
+  }
+}
+function getSelectedTags(){
+  return Array.from(document.querySelectorAll('#tag-cloud .tag-chip.filter-active')).map(el=>el.textContent);
+}
+
+function doCreateRoom(){
+  const name=document.getElementById('mr-n')?.value?.trim();
+  const desc=document.getElementById('mr-d')?.value?.trim()||'';
+  if(!name){toast('방 이름을 입력하세요.','error');return;}
+  const tags=getSelectedTags();
+  createRoom(name,desc,tags);
+}
+function doUpdateRoom(){
+  const name=document.getElementById('rs-n')?.value?.trim();
+  const desc=document.getElementById('rs-d')?.value?.trim()||'';
+  if(!name){toast('방 이름을 입력하세요.','error');return;}
+  const tags=getSelectedTags();
+  updateRoom(name,desc,tags);
+}
+function doBan(uid,un){
+  const perm=document.querySelector('input[name="bt"]:checked')?.value==='perm';
+  const hours=parseInt(document.getElementById('bh')?.value||'24');
+  const deviceBan=document.getElementById('dev-ban')?.checked||false;
+  if(!perm&&(isNaN(hours)||hours<1)){toast('유효한 시간을 입력하세요.','error');return;}
+  banUser(uid,un,perm,hours,deviceBan);
+}
+function selectAvaColor(el,color){
+  document.querySelectorAll('.ava-swatch').forEach(e=>e.classList.remove('on'));
+  el.classList.add('on');
+  const pfa=document.getElementById('pf-ava');
+  if(pfa)pfa.style.background=color;
+}
+function doUpdateProfile(){
+  const status=document.getElementById('pf-status')?.value?.trim()||'';
+  const avaEl=document.querySelector('.ava-swatch.on');
+  const avaColor=avaEl?.style.background||S.profile?.ava_color||AVA_COLORS[0];
+  updateProfile(status,avaColor);
+}
+
+/* ══════════════════════════════════════════
+   SETUP SQL
+══════════════════════════════════════════ */
+function getSetupSQL(){
+return `-- ╔══════════════════════════════════════════╗
+-- ║  AndroidDev Community v2 — DB Setup SQL  ║
+-- ╚══════════════════════════════════════════╝
+
+-- 1. profiles
+CREATE TABLE IF NOT EXISTS profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  username TEXT UNIQUE NOT NULL,
+  status_msg TEXT DEFAULT '',
+  ava_color TEXT DEFAULT '#3d8ef0',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 2. rooms
+CREATE TABLE IF NOT EXISTS rooms (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  owner_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  tags TEXT[] DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 3. room_members
+CREATE TABLE IF NOT EXISTS room_members (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  role TEXT NOT NULL DEFAULT 'member',
+  joined_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(room_id, user_id)
+);
+
+-- 4. messages
+CREATE TABLE IF NOT EXISTS messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  reply_to UUID REFERENCES messages(id) ON DELETE SET NULL,
+  is_pinned BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 5. files
+CREATE TABLE IF NOT EXISTS files (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  message_id UUID NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  file_name TEXT NOT NULL,
+  file_url TEXT NOT NULL,
+  file_size BIGINT NOT NULL,
+  expires_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '7 days'),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 6. bans
+CREATE TABLE IF NOT EXISTS bans (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  banned_by UUID REFERENCES profiles(id),
+  permanent BOOLEAN NOT NULL DEFAULT FALSE,
+  expires_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(room_id, user_id)
+);
+
+-- 7. reactions
+CREATE TABLE IF NOT EXISTS reactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  message_id UUID NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  emoji TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(message_id, user_id, emoji)
+);
+
+-- 8. device_sessions (기기 추적용)
+CREATE TABLE IF NOT EXISTS device_sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  fingerprint TEXT NOT NULL,
+  last_seen TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id)
+);
+
+-- 9. device_bans (기기 차단)
+CREATE TABLE IF NOT EXISTS device_bans (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  fingerprint TEXT NOT NULL UNIQUE,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  banned_by UUID REFERENCES profiles(id),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 10. typing (타이핑 표시)
+CREATE TABLE IF NOT EXISTS typing (
+  room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  username TEXT,
+  ts BIGINT,
+  PRIMARY KEY(room_id, user_id)
+);
+
+-- ── RLS 활성화 ──────────────────────────────
+ALTER TABLE profiles       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rooms          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE room_members   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE messages       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE files          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE bans           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reactions      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE device_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE device_bans    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE typing         ENABLE ROW LEVEL SECURITY;
+
+-- ── RLS 정책 ────────────────────────────────
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='profiles'        AND policyname='auth_all') THEN CREATE POLICY auth_all ON profiles        FOR ALL TO authenticated USING (true) WITH CHECK (true); END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='rooms'           AND policyname='auth_all') THEN CREATE POLICY auth_all ON rooms           FOR ALL TO authenticated USING (true) WITH CHECK (true); END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='room_members'    AND policyname='auth_all') THEN CREATE POLICY auth_all ON room_members    FOR ALL TO authenticated USING (true) WITH CHECK (true); END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='messages'        AND policyname='auth_all') THEN CREATE POLICY auth_all ON messages        FOR ALL TO authenticated USING (true) WITH CHECK (true); END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='files'           AND policyname='auth_all') THEN CREATE POLICY auth_all ON files           FOR ALL TO authenticated USING (true) WITH CHECK (true); END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='bans'            AND policyname='auth_all') THEN CREATE POLICY auth_all ON bans            FOR ALL TO authenticated USING (true) WITH CHECK (true); END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='reactions'       AND policyname='auth_all') THEN CREATE POLICY auth_all ON reactions       FOR ALL TO authenticated USING (true) WITH CHECK (true); END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='device_sessions' AND policyname='auth_all') THEN CREATE POLICY auth_all ON device_sessions FOR ALL TO authenticated USING (true) WITH CHECK (true); END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='device_bans'     AND policyname='auth_all') THEN CREATE POLICY auth_all ON device_bans     FOR ALL TO authenticated USING (true) WITH CHECK (true); END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='typing'          AND policyname='auth_all') THEN CREATE POLICY auth_all ON typing          FOR ALL TO authenticated USING (true) WITH CHECK (true); END IF;
+END $$;
+
+-- ── Realtime 활성화 ──────────────────────────
+ALTER PUBLICATION supabase_realtime ADD TABLE messages;
+ALTER PUBLICATION supabase_realtime ADD TABLE reactions;
+ALTER PUBLICATION supabase_realtime ADD TABLE typing;`;
+}
+
+/* ══════════════════════════════════════════
+   INIT
+══════════════════════════════════════════ */
+async function init(){
+  // theme
+  const savedTheme=localStorage.getItem('adc-theme')||'dark';
+  S.theme=savedTheme;document.body.setAttribute('data-theme',savedTheme);
+  // auto-login
+  const {data:{session}}=await SB.auth.getSession();
+  if(session?.user){
+    S.user=session.user;
+    await loadProfile();
+    await loadRooms();
+    await trackSession();
+  }
+  SB.auth.onAuthStateChange(async(event,session)=>{
+    if(event==='SIGNED_OUT'){
+      cleanup();
+      Object.assign(S,{user:null,profile:null,rooms:[],joined:[],room:null,
+        msgs:[],members:[],bans:[],myRole:null,files:[],channel:null,
+        presenceChannel:null,modal:null,onlineUsers:{},pinnedMsg:null,replyTo:null});
+      render();
+    }else if(event==='SIGNED_IN'&&session?.user){
+      S.user=session.user;
+      await loadProfile();
+      await loadRooms();
+      await trackSession();
+      render();
+    }
+  });
+  render();
+}
+
+init();
+</script>
+</body>
+</html>
