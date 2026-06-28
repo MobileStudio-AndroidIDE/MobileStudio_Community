@@ -4,7 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AndroidDev — 개발자 커뮤니티</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" onerror="window.__sbLoadFailed=true"></script>
+<script>
+// If the primary CDN fails to load supabase-js, try a fallback CDN once.
+window.addEventListener('DOMContentLoaded',function(){
+  if(typeof supabase==='undefined'){
+    var s=document.createElement('script');
+    s.src='https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js';
+    s.onload=function(){window.__sbFallbackLoaded=true;if(window.__sbRetryInit)window.__sbRetryInit();};
+    s.onerror=function(){window.__sbFallbackFailed=true;if(window.__sbShowFatal)window.__sbShowFatal();};
+    document.head.appendChild(s);
+  }
+});
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ═══════════════════════════════
@@ -389,13 +401,57 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,-apple
 'use strict';
 
 /* ══════════════════
-   SUPABASE
+   SUPABASE — wait for the CDN script to actually be ready before using it.
+   On flaky mobile networks the <script src> tag in <head> can fail or load
+   very slowly; if we touch `supabase` before it exists the whole inline
+   script throws at the top level and nothing below ever runs (including
+   any try/catch we'd add later). So we gate everything behind this check.
 ══════════════════ */
-const { createClient } = supabase;
-const SB = createClient(
-  'https://bgojdyquljsulukeuvox.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJnb2pkeXF1bGpzdWx1a2V1dm94Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExODcyMzgsImV4cCI6MjA5Njc2MzIzOH0.-Nx82m0-77v5KOio1-S-fDn8RbNha_-6ZMbD_G3Ympc'
-);
+let SB=null;
+function showCdnFatal(msg){
+  const app=document.getElementById('app');if(!app)return;
+  app.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;color:#f05555;font-size:13px;gap:10px;padding:24px;text-align:center;background:#07090f;font-family:system-ui,-apple-system,sans-serif">
+    <span style="font-size:28px">⚠️</span>
+    <div style="font-weight:700;color:#e6eeff">필수 라이브러리를 불러오지 못했습니다</div>
+    <div style="color:#7b96c4;max-width:320px">${msg}</div>
+    <button onclick="location.reload()" style="margin-top:8px;padding:8px 16px;background:#4f8ef7;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px">새로고침</button>
+  </div>`;
+}
+function tryInitSupabase(){
+  if(typeof supabase==='undefined'||!supabase.createClient)return false;
+  const { createClient } = supabase;
+  SB = createClient(
+    'https://bgojdyquljsulukeuvox.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJnb2pkeXF1bGpzdWx1a2V1dm94Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExODcyMzgsImV4cCI6MjA5Njc2MzIzOH0.-Nx82m0-77v5KOio1-S-fDn8RbNha_-6ZMbD_G3Ympc'
+  );
+  return true;
+}
+// Expose hooks the <head> fallback-loader script can call
+window.__sbRetryInit=function(){ if(!SB) startApp(); };
+window.__sbShowFatal=function(){ showCdnFatal('네트워크 연결을 확인하고 새로고침해주세요. (CDN 차단 또는 네트워크 문제)'); };
+
+function startApp(){
+  if(tryInitSupabase()){
+    init();
+    return;
+  }
+  // Not ready yet — poll briefly (covers the brief gap before the script finishes parsing/executing)
+  let waited=0;
+  const poll=setInterval(()=>{
+    waited+=250;
+    if(tryInitSupabase()){
+      clearInterval(poll);
+      init();
+    }else if(waited>=12000){
+      clearInterval(poll);
+      if(window.__sbFallbackFailed||window.__sbLoadFailed){
+        showCdnFatal('CDN(cdn.jsdelivr.net / unpkg.com)에 접속할 수 없습니다. Wi-Fi/데이터 연결이나 방화벽 설정을 확인해주세요.');
+      }else{
+        showCdnFatal('라이브러리 로딩이 너무 오래 걸립니다. 네트워크 상태를 확인하고 새로고침해주세요.');
+      }
+    }
+  },250);
+}
 
 /* ══════════════════
    CONSTANTS
@@ -1495,44 +1551,4 @@ function render(){
   }
   app.innerHTML=rSidebar()+(S.room?rChat():rHome())+(S.membersPanelOpen&&S.room?rMembersPanel():'')+(S.modal?rModal():'');
   bindMain();
-  if(S.searchOpen&&S.room)setTimeout(renderSearch,50);
-}
-
-/* ── AUTH ── */
-function rAuth(){
-  const si=S.authTab==='in';
-  return`<div class="auth-wrap">
-<div class="auth-card">
-  <div style="position:absolute;top:14px;right:14px">
-    <select class="inp" style="font-size:11px;padding:5px 8px;width:auto" onchange="setLang(this.value)">
-      ${LANGS.map(l=>`<option value="${l.code}" ${l.code===S.lang?'selected':''}>${l.flag} ${esc(l.label)}</option>`).join('')}
-    </select>
-  </div>
-  <div class="auth-logo">
-    <div class="auth-logo-mark">📱</div>
-    <div class="auth-title">Android<span>Dev</span></div>
-    <div class="auth-sub">Android 개발자 커뮤니티</div>
-  </div>
-  <div class="auth-tabs">
-    <div class="auth-tab ${si?'on':''}" onclick="S.authTab='in';S.authErr='';S.authOk='';render()">${esc(t('login'))}</div>
-    <div class="auth-tab ${!si?'on':''}" onclick="S.authTab='up';S.authErr='';S.authOk='';render()">${esc(t('signup'))}</div>
-  </div>
-  <div class="field"><label class="lbl">${esc(t('email'))}</label>
-    <input class="inp${S.authErr?' inp-err':''}" id="ae" type="email" placeholder="you@gmail.com" autocomplete="email" onkeydown="if(event.key==='Enter')doAuth()">
-  </div>
-  <div class="field"><label class="lbl">${esc(t('password'))}</label>
-    <input class="inp${S.authErr?' inp-err':''}" id="ap" type="password" placeholder="••••••••" autocomplete="${si?'current-password':'new-password'}" oninput="${!si?'showPwStrength(this.value)':''}" onkeydown="if(event.key==='Enter')doAuth()">
-    ${!si?`<div class="strength-bar"><div class="strength-fill" id="sf"></div></div><div id="sl" style="font-size:10px;margin-top:3px;color:var(--text3)">${esc(t('pw_hint'))}</div>`:''}
-  </div>
-  ${!si?`<div class="field"><label class="lbl">${esc(t('nickname'))}</label>
-    <input class="inp${S.authErr?' inp-err':''}" id="au" type="text" placeholder="예: dev_kim, (android)hong" maxlength="20" autocomplete="username" onkeydown="if(event.key==='Enter')doAuth()" oninput="this.value=this.value.replace(/\\s/g,'')">
-    <div style="font-size:10px;color:var(--text3);margin-top:4px">${esc(t('nickname_hint'))}</div>
-  </div>`:''}
-  ${S.authErr?`<div class="err-box"><span>⚠</span><span>${esc(S.authErr)}</span></div>`:''}
-  ${S.authOk?`<div class="ok-box">✓ ${esc(S.authOk)}</div>`:''}
-  <button class="btn btn-primary btn-full" style="margin-top:18px" onclick="doAuth()">${si?esc(t('login_btn')):esc(t('signup_btn'))}</button>
-  <div class="auth-footer">${esc(t('first_time'))} <a href="#" onclick="M.su();return false">${esc(t('db_guide'))}</a></div>
-</div></div>`;
-}
-function showPwStrength(pw){
-  const sf=document.getElementById('sf'),sl=document.get
+  if(S.se
