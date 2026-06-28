@@ -1,0 +1,1545 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />
+<title>AndroidDev — Developer Community Chat</title>
+<meta name="description" content="A single-file, self-hosted chat app for developer communities, backed by Supabase." />
+
+<!-- React 18 (UMD) -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<!-- Babel standalone (so we can write JSX directly in this single file) -->
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<!-- Supabase JS v2 -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<!-- lucide icons (simple, license-friendly, tree-shaken via web component free usage: we draw inline SVGs instead, see ICONS below) -->
+
+<style>
+/* ============================================================
+   Design tokens — ported 1:1 from the original app's styles.css
+   (oklch dark theme, "AndroidDev" identity, blue accent #4f8ef7)
+   ============================================================ */
+:root{
+  color-scheme: dark;
+  --radius: 0.625rem;
+
+  --bg1: oklch(0.14 0.022 265);
+  --bg2: oklch(0.18 0.025 265);
+  --bg3: oklch(0.22 0.028 265);
+  --bg4: oklch(0.27 0.033 265);
+  --bg5: oklch(0.32 0.04 265);
+
+  --background: var(--bg1);
+  --foreground: oklch(0.96 0.015 250);
+
+  --card: oklch(0.20 0.028 265);
+  --card-foreground: oklch(0.96 0.015 250);
+
+  --primary: oklch(0.68 0.18 256);     /* #4f8ef7 */
+  --primary-foreground: oklch(0.14 0.022 265);
+
+  --muted-foreground: oklch(0.65 0.02 260);
+  --destructive: oklch(0.66 0.19 26);
+  --destructive-foreground: oklch(0.98 0 0);
+  --success: oklch(0.7 0.16 145);
+
+  --border: oklch(0.30 0.04 265);
+  --ring: var(--primary);
+}
+
+*{ box-sizing: border-box; }
+html,body{ margin:0; padding:0; }
+body{
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  height: 100vh;
+  overflow: hidden;
+}
+#root{ height:100%; }
+a{ color:inherit; text-decoration:none; }
+button{ font-family:inherit; cursor:pointer; }
+input,textarea,select,button{ font-family:inherit; color:inherit; }
+::-webkit-scrollbar{ width:8px; height:8px; }
+::-webkit-scrollbar-track{ background:transparent; }
+::-webkit-scrollbar-thumb{ background: color-mix(in oklch, var(--border) 80%, transparent); border-radius:4px; }
+::-webkit-scrollbar-thumb:hover{ background: var(--border); }
+
+.surface-1{ background: var(--bg2); }
+.surface-2{ background: var(--bg3); }
+.surface-3{ background: var(--bg4); }
+
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:.4rem;
+  border-radius: 8px; font-size:.875rem; font-weight:600; padding:.5rem .9rem;
+  border:1px solid transparent; transition: opacity .15s, background-color .15s;
+}
+.btn-primary{ background:var(--primary); color:var(--primary-foreground); }
+.btn-primary:hover:not(:disabled){ opacity:.9; }
+.btn-primary:disabled{ opacity:.45; cursor:not-allowed; }
+.btn-ghost{ background:transparent; color:var(--muted-foreground); }
+.btn-ghost:hover{ background:var(--bg3); color:var(--foreground); }
+.btn-icon{ padding:.4rem; border-radius:8px; background:transparent; color:var(--muted-foreground); border:none; display:inline-flex; }
+.btn-icon:hover{ background:var(--bg3); color:var(--foreground); }
+.btn-icon:disabled{ opacity:.4; cursor:not-allowed; }
+
+.field-label{ display:block; font-size:.7rem; font-weight:600; color:var(--muted-foreground); text-transform:uppercase; letter-spacing:.05em; margin-bottom:.35rem; }
+.input{
+  width:100%; background:var(--bg3); border:1px solid var(--border); border-radius:8px;
+  padding:.55rem .75rem; font-size:14px; color:var(--foreground); outline:none;
+}
+.input:focus{ border-color:var(--primary); box-shadow:0 0 0 2px color-mix(in oklch, var(--primary) 25%, transparent); }
+textarea.input{ resize: vertical; }
+
+.card{ background:var(--card); border:1px solid var(--border); border-radius:12px; }
+
+.scrollbar-none::-webkit-scrollbar{ display:none; }
+
+/* simple toast */
+.toast-wrap{ position:fixed; top:14px; right:14px; z-index:100; display:flex; flex-direction:column; gap:8px; pointer-events:none; }
+.toast{
+  pointer-events:auto; background:var(--card); border:1px solid var(--border); border-radius:10px;
+  padding:.65rem .9rem; font-size:13px; box-shadow:0 8px 24px rgba(0,0,0,.35); max-width:320px;
+  animation: toast-in .18s ease-out;
+}
+.toast.error{ border-color: color-mix(in oklch, var(--destructive) 50%, var(--border)); color: oklch(0.86 0.08 26); }
+.toast.success{ border-color: color-mix(in oklch, var(--success) 50%, var(--border)); }
+@keyframes toast-in{ from{ opacity:0; transform:translateY(-6px);} to{opacity:1; transform:translateY(0);} }
+
+@keyframes bounce-dot{ 0%,80%,100%{ transform: translateY(0); opacity:.5 } 40%{ transform: translateY(-3px); opacity:1 } }
+.typing-dot{ animation: bounce-dot 1s infinite; }
+
+.fade-in{ animation: fade-in .15s ease-out; }
+@keyframes fade-in{ from{ opacity:0 } to{ opacity:1 } }
+
+/* connection setup screen */
+.setup-wrap{
+  min-height:100vh; display:flex; align-items:center; justify-content:center; padding:2rem 1rem;
+  background:
+    radial-gradient(circle at 18% 20%, color-mix(in oklch, var(--primary) 14%, transparent), transparent 45%),
+    radial-gradient(circle at 82% 78%, color-mix(in oklch, var(--primary) 10%, transparent), transparent 40%),
+    var(--background);
+}
+.logo-mark{
+  width:44px; height:44px; border-radius:11px; background:linear-gradient(145deg, var(--primary), oklch(0.5 0.16 256));
+  display:flex; align-items:center; justify-content:center; color:white; font-weight:800; font-size:1.1rem;
+  box-shadow: 0 6px 18px color-mix(in oklch, var(--primary) 40%, transparent);
+}
+
+@media (max-width: 640px){
+  .hide-sm{ display:none; }
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div id="toast-root" class="toast-wrap"></div>
+
+<script type="text/babel" data-presets="react,env">
+"use strict";
+const { useState, useEffect, useRef, useMemo, useCallback, createContext, useContext, Fragment } = React;
+
+/* ============================================================
+   Inline SVG icon set (no external icon font/lib dependency)
+   ============================================================ */
+function Icon({ d, size = 16, strokeWidth = 2, viewBox = "0 0 24 24", children, ...rest }) {
+  return (
+    <svg width={size} height={size} viewBox={viewBox} fill="none" stroke="currentColor"
+      strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" {...rest}>
+      {children}
+    </svg>
+  );
+}
+const ICONS = {
+  arrowLeft: (p) => <Icon {...p}><path d="M19 12H5M12 19l-7-7 7-7"/></Icon>,
+  logOut: (p) => <Icon {...p}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></Icon>,
+  send: (p) => <Icon {...p}><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></Icon>,
+  users: (p) => <Icon {...p}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></Icon>,
+  paperclip: (p) => <Icon {...p}><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 1 1 5.66 5.66l-9.2 9.19a2 2 0 1 1-2.83-2.83l8.49-8.48"/></Icon>,
+  settings: (p) => <Icon {...p}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></Icon>,
+  bookOpen: (p) => <Icon {...p}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2Z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7Z"/></Icon>,
+  plus: (p) => <Icon {...p}><path d="M5 12h14M12 5v14"/></Icon>,
+  messageSquare: (p) => <Icon {...p}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></Icon>,
+  x: (p) => <Icon {...p}><path d="M18 6 6 18M6 6l12 12"/></Icon>,
+  smile: (p) => <Icon {...p}><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></Icon>,
+  fileText: (p) => <Icon {...p}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5z"/><polyline points="14 2 14 8 20 8"/></Icon>,
+  eye: (p) => <Icon {...p}><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></Icon>,
+  download: (p) => <Icon {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></Icon>,
+  copy: (p) => <Icon {...p}><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></Icon>,
+  loader: (p) => <Icon {...p}><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></Icon>,
+  globe: (p) => <Icon {...p}><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></Icon>,
+  imageIcon: (p) => <Icon {...p}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></Icon>,
+};
+
+/* ============================================================
+   i18n — full Korean + English strings, other locales fall back
+   to English (matching the original app's behaviour exactly).
+   ============================================================ */
+const LANGUAGES = [
+  { code: "ko", name: "한국어", flag: "🇰🇷" },
+  { code: "en", name: "English", flag: "🇺🇸" },
+  { code: "ja", name: "日本語", flag: "🇯🇵" },
+  { code: "zh", name: "中文", flag: "🇨🇳" },
+  { code: "es", name: "Español", flag: "🇪🇸" },
+  { code: "fr", name: "Français", flag: "🇫🇷" },
+  { code: "de", name: "Deutsch", flag: "🇩🇪" },
+  { code: "ru", name: "Русский", flag: "🇷🇺" },
+  { code: "pt", name: "Português", flag: "🇧🇷" },
+  { code: "vi", name: "Tiếng Việt", flag: "🇻🇳" },
+];
+function langName(code) {
+  const f = LANGUAGES.find(l => l.code === code);
+  return f ? f.name : (code || "").toUpperCase();
+}
+
+const STRINGS = {
+  ko: {
+    appName: "AndroidDev", tagline: "개발자 커뮤니티",
+    signIn: "로그인", signUp: "회원가입", signOut: "로그아웃",
+    username: "사용자 이름", password: "비밀번호", displayName: "표시 이름",
+    gmail: "Gmail (선택)", gmailHint: "같은 Gmail로 여러 계정을 만들 수 있습니다",
+    preferredLang: "선호 언어", haveAccount: "이미 계정이 있나요?", noAccount: "계정이 없나요?",
+    create: "생성", rooms: "채팅방", newRoom: "새 채팅방", roomName: "방 이름", roomDesc: "설명",
+    join: "입장", leave: "나가기", members: "명", message: "메시지", send: "전송",
+    sendPlaceholder: "메시지 입력...", typing: "님이 입력 중", joined: "님이 입장했습니다",
+    left: "님이 나갔습니다", today: "오늘", yesterday: "어제", showOriginal: "원본 보기",
+    translate: "번역하기", translatedFrom: "에서 번역됨", read: "읽음", rules: "규칙",
+    viewRules: "규칙 보기", accept: "확인", announcement: "공지", roomSettings: "방 설정",
+    customize: "꾸미기", save: "저장", cancel: "취소", delete: "삭제", edit: "편집",
+    copy: "복사", download: "다운로드", viewFile: "내용 보기",
+    cannotPreview: "이 파일 형식은 미리보기할 수 없습니다", react: "반응", reply: "답장",
+    language: "언어", selectLanguage: "언어 선택", welcomeTitle: "환영합니다",
+    welcomeBody: "왼쪽에서 채팅방을 선택하거나 새로 만들어 시작하세요", loading: "불러오는 중...",
+    empty: "아직 메시지가 없습니다", requiredField: "필수 항목입니다",
+    signupSuccess: "계정이 생성되었습니다", signupFailed: "회원가입 실패", loginFailed: "로그인 실패",
+    attach: "파일 첨부", uploading: "업로드 중...", fileTooBig: "파일이 너무 큽니다 (최대 25MB)",
+    setupTitle: "Supabase 연결", setupBody: "이 앱을 사용하려면 본인의 Supabase 프로젝트 URL과 anon key가 필요합니다.",
+    connect: "연결하기", noRoomsYet: "아직 채팅방이 없습니다 — 첫 채팅방을 만들어보세요.",
+    translationOn: "자동 번역 켬", translationOff: "자동 번역 끔",
+  },
+  en: {
+    appName: "AndroidDev", tagline: "Developer Community",
+    signIn: "Sign in", signUp: "Sign up", signOut: "Sign out",
+    username: "Username", password: "Password", displayName: "Display name",
+    gmail: "Gmail (optional)", gmailHint: "You can create multiple accounts with the same Gmail",
+    preferredLang: "Preferred language", haveAccount: "Already have an account?", noAccount: "No account yet?",
+    create: "Create", rooms: "Rooms", newRoom: "New room", roomName: "Room name", roomDesc: "Description",
+    join: "Join", leave: "Leave", members: "members", message: "Message", send: "Send",
+    sendPlaceholder: "Type a message...", typing: "is typing", joined: "joined", left: "left",
+    today: "Today", yesterday: "Yesterday", showOriginal: "Show original", translate: "Translate",
+    translatedFrom: "translated from", read: "Read", rules: "Rules", viewRules: "View rules",
+    accept: "OK", announcement: "Announcement", roomSettings: "Room settings", customize: "Customize",
+    save: "Save", cancel: "Cancel", delete: "Delete", edit: "Edit", copy: "Copy", download: "Download",
+    viewFile: "View", cannotPreview: "This file type can't be previewed", react: "React", reply: "Reply",
+    language: "Language", selectLanguage: "Select language", welcomeTitle: "Welcome",
+    welcomeBody: "Pick a room on the left or create a new one to start chatting", loading: "Loading...",
+    empty: "No messages yet", requiredField: "Required", signupSuccess: "Account created",
+    signupFailed: "Signup failed", loginFailed: "Sign-in failed", attach: "Attach file",
+    uploading: "Uploading...", fileTooBig: "File too large (max 25MB)",
+    setupTitle: "Connect Supabase", setupBody: "To use this app you need your own Supabase project URL and anon key.",
+    connect: "Connect", noRoomsYet: "No rooms yet — create the first one.",
+    translationOn: "Auto-translate on", translationOff: "Auto-translate off",
+  },
+};
+for (const code of ["ja", "zh", "es", "fr", "de", "ru", "pt", "vi"]) {
+  STRINGS[code] = { ...STRINGS.en };
+}
+function detectBrowserLang() {
+  try {
+    const saved = localStorage.getItem("ad_lang");
+    if (saved && STRINGS[saved]) return saved;
+    const nav = (navigator.language || "en").slice(0, 2).toLowerCase();
+    return STRINGS[nav] ? nav : "en";
+  } catch { return "en"; }
+}
+
+const I18nContext = createContext({ lang: "en", t: (k) => k, setLang: () => {} });
+function useT() { return useContext(I18nContext); }
+function I18nProvider({ children }) {
+  const [lang, setLangState] = useState(detectBrowserLang);
+  const setLang = useCallback((l) => {
+    setLangState(l);
+    try { localStorage.setItem("ad_lang", l); } catch {}
+  }, []);
+  const t = useCallback((k) => (STRINGS[lang] && STRINGS[lang][k]) || STRINGS.en[k] || k, [lang]);
+  return <I18nContext.Provider value={{ lang, t, setLang }}>{children}</I18nContext.Provider>;
+}
+
+/* ============================================================
+   Small formatting helpers
+   ============================================================ */
+function formatTime(d) {
+  const date = typeof d === "string" ? new Date(d) : d;
+  const h = String(date.getHours()).padStart(2, "0");
+  const m = String(date.getMinutes()).padStart(2, "0");
+  return `${h}:${m}`;
+}
+function formatDay(d) {
+  const date = typeof d === "string" ? new Date(d) : d;
+  return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+}
+function formatBytes(n) {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+const BLOCKED_EXT = new Set(["apk","jar","lock","zip","rar","7z","tar","gz","exe","dll","so","bin","msi","dmg","iso","pkg"]);
+const TEXT_EXT = new Set(["txt","md","json","csv","log","js","ts","tsx","jsx","py","java","kt","go","rs","c","cpp","h","hpp","cs","rb","php","swift","yaml","yml","toml","html","css","xml","sh","bash","sql","env","gradle","properties"]);
+function extOf(name) {
+  const i = name.lastIndexOf(".");
+  return i < 0 ? "" : name.slice(i + 1).toLowerCase();
+}
+function previewKind(att) {
+  const ext = extOf(att.name);
+  if (BLOCKED_EXT.has(ext)) return "none";
+  if ((att.mime || "").startsWith("image/")) return "image";
+  if ((att.mime || "").startsWith("text/") || TEXT_EXT.has(ext)) return "text";
+  return "none";
+}
+function usernameToEmail(username) {
+  return `${username.trim().toLowerCase()}@accounts.androiddev.local`;
+}
+const USERNAME_RE = /^[a-z0-9_]{3,24}$/i;
+
+/* ============================================================
+   Toast system (renders into #toast-root, outside React root,
+   so it survives even if the main tree re-mounts)
+   ============================================================ */
+const toastRoot = document.getElementById("toast-root");
+function showToast(message, kind) {
+  const el = document.createElement("div");
+  el.className = `toast ${kind || ""}`;
+  el.textContent = message;
+  toastRoot.appendChild(el);
+  setTimeout(() => {
+    el.style.transition = "opacity .2s, transform .2s";
+    el.style.opacity = "0";
+    el.style.transform = "translateY(-6px)";
+    setTimeout(() => el.remove(), 220);
+  }, 3200);
+}
+const toast = {
+  error: (msg) => showToast(typeof msg === "string" ? msg : "Error", "error"),
+  success: (msg) => showToast(typeof msg === "string" ? msg : "Done", "success"),
+};
+
+/* ============================================================
+   Supabase connection — this is a portable single HTML file,
+   so the project URL / anon key are supplied by whoever hosts
+   it (stored in localStorage), not hard-coded into the file.
+   ============================================================ */
+const SupabaseContext = createContext(null);
+function useSupabase() { return useContext(SupabaseContext); }
+
+function loadSavedConfig() {
+  try {
+    const raw = localStorage.getItem("ad_supabase_config");
+    if (!raw) return null;
+    const cfg = JSON.parse(raw);
+    if (cfg && cfg.url && cfg.anonKey) return cfg;
+  } catch {}
+  return null;
+}
+
+/* ============================================================
+   Translation — calls Gemini directly from the browser using the
+   key the host pasted into the setup screen. If no key was set,
+   translation is silently skipped (messages just show as-is).
+   ============================================================ */
+async function geminiGenerate(geminiKey, system, prompt) {
+  if (!geminiKey) throw new Error("no-key");
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(geminiKey)}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: system }] },
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+    }),
+  });
+  if (!res.ok) throw new Error(`Gemini error ${res.status}`);
+  const data = await res.json();
+  const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "";
+  return text.trim();
+}
+async function translateText(geminiKey, text, targetLang, sourceLang) {
+  const system = "You are a professional translator. Translate the user's text to the target language. " +
+    "Output ONLY the translated text — no explanations, no quotes, no source-language echo. " +
+    "Preserve emoji, code blocks, URLs, and @mentions exactly.";
+  const prompt = `Target language code: ${targetLang}\n${sourceLang ? `Source language code: ${sourceLang}\n` : ""}---\n${text}`;
+  const out = await geminiGenerate(geminiKey, system, prompt);
+  return out;
+}
+async function detectLanguage(geminiKey, text) {
+  try {
+    const out = await geminiGenerate(geminiKey,
+      "Detect the language of the text. Reply with ONLY the ISO 639-1 two-letter lowercase code (e.g. en, ko, ja, zh, es, fr, de, ru, pt, vi). No punctuation.",
+      text);
+    const code = out.toLowerCase().slice(0, 2);
+    return /^[a-z]{2}$/.test(code) ? code : "en";
+  } catch {
+    return null;
+  }
+}
+
+/* ============================================================
+   Language picker — optionally persists to the user's profile
+   ============================================================ */
+function LanguageSelect({ persist, profileId, sb }) {
+  const { lang, setLang } = useT();
+  return (
+    <select
+      value={lang}
+      onChange={async (e) => {
+        const next = e.target.value;
+        setLang(next);
+        if (persist && profileId) {
+          await sb.from("profiles").update({ preferred_lang: next }).eq("id", profileId);
+        }
+      }}
+      className="input"
+      style={{ width: "auto", padding: ".4rem .5rem", fontSize: "13px" }}
+      title="Language"
+    >
+      {LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.flag} {l.name}</option>)}
+    </select>
+  );
+}
+
+function SetupScreen({ onConnected }) {
+  const { t } = useT();
+  const [anonKey, setAnonKey] = useState("");
+  const [geminiKey, setGeminiKey] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function connect(e) {
+    e.preventDefault();
+    if (!url.trim() || !anonKey.trim()) { toast.error(t("requiredField")); return; }
+    setBusy(true);
+    try {
+      const client = window.supabase.createClient(url.trim(), anonKey.trim());
+      // sanity check the URL/key actually talk to a Supabase project
+      const { error } = await client.from("rooms").select("id", { count: "exact", head: true });
+      if (error && error.code !== "PGRST116" && !/relation .* does not exist/i.test(error.message || "")) {
+        // PGRST301 (jwt) etc are still "connected"; only network-level failures should block
+        if (error.message && /fetch|network|Failed to fetch/i.test(error.message)) throw error;
+      }
+      const cfg = { url: url.trim(), anonKey: anonKey.trim(), geminiKey: geminiKey.trim() || null };
+      localStorage.setItem("ad_supabase_config", JSON.stringify(cfg));
+      onConnected(cfg);
+    } catch (err) {
+      toast.error(err.message || "Connection failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="setup-wrap">
+      <div className="card fade-in" style={{ width: "100%", maxWidth: 480, padding: "1.75rem" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+          <div className="logo-mark">A</div>
+          <div>
+            <h1 style={{ margin: 0, fontSize: "1.15rem", fontWeight: 800 }}>
+              <span style={{ color: "var(--primary)" }}>Android</span>Dev
+            </h1>
+            <p style={{ margin: "2px 0 0", fontSize: ".75rem", color: "var(--muted-foreground)" }}>{t("setupTitle")}</p>
+          </div>
+        </div>
+        <p style={{ fontSize: ".85rem", color: "var(--muted-foreground)", lineHeight: 1.5, marginBottom: 18 }}>
+          {t("setupBody")} Run the SQL schema from <code>schema.sql</code> in your Supabase SQL editor first
+          (see the included README), then paste your project's URL and anon (public) key below.
+        </p>
+        <form onSubmit={connect} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div>
+            <label className="field-label">Supabase Project URL</label>
+            <input className="input" placeholder="https://xxxxxxxx.supabase.co" value={url}
+              onChange={e => setUrl(e.target.value)} required />
+          </div>
+          <div>
+            <label className="field-label">Supabase Anon (public) Key</label>
+            <input className="input" placeholder="eyJhbGciOi..." value={anonKey}
+              onChange={e => setAnonKey(e.target.value)} required />
+          </div>
+          <div>
+            <label className="field-label">Gemini API Key (optional — enables auto-translate)</label>
+            <input className="input" placeholder="AIza... (leave blank to disable translation)" value={geminiKey}
+              onChange={e => setGeminiKey(e.target.value)} />
+            <p style={{ fontSize: ".7rem", color: "var(--muted-foreground)", marginTop: 5 }}>
+              Stored only in this browser's localStorage. Get a free key at Google AI Studio.
+            </p>
+          </div>
+          <button type="submit" className="btn btn-primary" disabled={busy} style={{ marginTop: 4 }}>
+            {busy ? t("loading") : t("connect")}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   Auth — sign in / sign up. Usernames map to synthetic emails so
+   Supabase Auth can be used without requiring a real mailbox.
+   ============================================================ */
+function AuthPage({ sb, onAuthed }) {
+  const { t, lang, setLang } = useT();
+  const [mode, setMode] = useState("signin");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [gmail, setGmail] = useState("");
+  const [prefLang, setPrefLang] = useState(lang);
+  const [loading, setLoading] = useState(false);
+
+  async function submit(e) {
+    e.preventDefault();
+    if (!USERNAME_RE.test(username)) { toast.error("3–24 chars: a–z, 0–9, _"); return; }
+    if (password.length < 6) { toast.error("Password ≥ 6 chars"); return; }
+    setLoading(true);
+    try {
+      const email = usernameToEmail(username);
+      if (mode === "signup") {
+        if (!displayName.trim()) { toast.error(t("requiredField") + ": " + t("displayName")); setLoading(false); return; }
+        const { error } = await sb.auth.signUp({
+          email, password,
+          options: { data: { display_name: displayName.trim(), preferred_lang: prefLang, gmail: gmail.trim() || null } },
+        });
+        if (error) throw error;
+        toast.success(t("signupSuccess"));
+      } else {
+        const { error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      }
+      onAuthed();
+    } catch (err) {
+      toast.error(err.message || (mode === "signup" ? t("signupFailed") : t("loginFailed")));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="setup-wrap" style={{ alignItems: "center" }}>
+      <div style={{ width: "100%", maxWidth: 420 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 800, letterSpacing: "-0.02em" }}>
+              <span style={{ color: "var(--primary)" }}>Android</span>Dev
+            </h1>
+            <p style={{ margin: "4px 0 0", fontSize: ".75rem", color: "var(--muted-foreground)" }}>{t("tagline")}</p>
+          </div>
+          <select className="input" style={{ width: "auto", padding: ".4rem .5rem", fontSize: 13 }}
+            value={lang} onChange={e => setLang(e.target.value)}>
+            {LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.flag} {l.name}</option>)}
+          </select>
+        </div>
+
+        <div className="card fade-in" style={{ padding: "1.5rem", boxShadow: "0 20px 50px rgba(0,0,0,.35)" }}>
+          <div style={{ display: "flex", gap: 4, padding: 4, background: "var(--bg3)", borderRadius: 10, marginBottom: 22 }}>
+            {["signin", "signup"].map(m => (
+              <button key={m} type="button" onClick={() => setMode(m)}
+                style={{
+                  flex: 1, padding: "8px 0", fontSize: 14, fontWeight: 600, borderRadius: 8, border: "none",
+                  background: mode === m ? "var(--primary)" : "transparent",
+                  color: mode === m ? "var(--primary-foreground)" : "var(--muted-foreground)",
+                  transition: "background-color .15s",
+                }}>
+                {m === "signin" ? t("signIn") : t("signUp")}
+              </button>
+            ))}
+          </div>
+
+          <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div>
+              <label className="field-label">{t("username")}</label>
+              <input className="input" value={username} onChange={e => setUsername(e.target.value)}
+                autoComplete="username" placeholder="dev_alex" required />
+            </div>
+            <div>
+              <label className="field-label">{t("password")}</label>
+              <input className="input" type="password" value={password} onChange={e => setPassword(e.target.value)}
+                autoComplete={mode === "signin" ? "current-password" : "new-password"} required />
+            </div>
+            {mode === "signup" && (
+              <Fragment>
+                <div>
+                  <label className="field-label">{t("displayName")}</label>
+                  <input className="input" value={displayName} onChange={e => setDisplayName(e.target.value)}
+                    placeholder="Alex" required />
+                </div>
+                <div>
+                  <label className="field-label">{t("gmail")}</label>
+                  <input className="input" type="email" value={gmail} onChange={e => setGmail(e.target.value)}
+                    placeholder="you@gmail.com" />
+                  <p style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 4 }}>{t("gmailHint")}</p>
+                </div>
+                <div>
+                  <label className="field-label">{t("preferredLang")}</label>
+                  <select className="input" value={prefLang} onChange={e => setPrefLang(e.target.value)}>
+                    {LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.flag} {l.name}</option>)}
+                  </select>
+                </div>
+              </Fragment>
+            )}
+            <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: "100%", padding: ".65rem 0", marginTop: 6 }}>
+              {loading ? "..." : mode === "signin" ? t("signIn") : t("create")}
+            </button>
+          </form>
+        </div>
+
+        <p style={{ textAlign: "center", fontSize: 12, color: "var(--muted-foreground)", marginTop: 20 }}>
+          {mode === "signin" ? t("noAccount") : t("haveAccount")}{" "}
+          <button type="button" onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+            style={{ background: "none", border: "none", color: "var(--primary)", textDecoration: "underline" }}>
+            {mode === "signin" ? t("signUp") : t("signIn")}
+          </button>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   Rooms list — browse / join / create rooms
+   ============================================================ */
+function RoomsPage({ sb, me, onOpenRoom, onSignOut }) {
+  const { t } = useT();
+  const [rooms, setRooms] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showNew, setShowNew] = useState(false);
+
+  useEffect(() => { load(); }, []);
+
+  async function load() {
+    setLoading(true);
+    const { data: roomData } = await sb.from("rooms")
+      .select("id,name,description,accent_color,owner_id")
+      .order("created_at", { ascending: false });
+    const { data: memberData } = await sb.from("room_members").select("room_id").eq("user_id", me.id);
+    const memberSet = new Set((memberData || []).map(m => m.room_id));
+    setRooms((roomData || []).map(r => ({ ...r, is_member: memberSet.has(r.id) })));
+    setLoading(false);
+  }
+
+  async function createRoom(name, description) {
+    const { data, error } = await sb.from("rooms").insert({ name, description, owner_id: me.id }).select("id").single();
+    if (error) { toast.error(error.message); return; }
+    setShowNew(false);
+    onOpenRoom(data.id);
+  }
+
+  async function joinRoom(room) {
+    if (!room.is_member) {
+      const { error } = await sb.from("room_members").insert({ room_id: room.id, user_id: me.id });
+      if (error) { toast.error(error.message); return; }
+      await sb.from("room_events").insert({ room_id: room.id, user_id: me.id, type: "join" });
+    }
+    onOpenRoom(room.id);
+  }
+
+  return (
+    <div style={{ minHeight: "100vh", overflowY: "auto", height: "100%" }}>
+      <header style={{ borderBottom: "1px solid var(--border)", position: "sticky", top: 0, background: "color-mix(in oklch, var(--background) 95%, transparent)", backdropFilter: "blur(8px)", zIndex: 10 }}>
+        <div style={{ maxWidth: 980, margin: "0 auto", padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <h1 style={{ fontSize: "1.2rem", fontWeight: 800, margin: 0 }}>
+              <span style={{ color: "var(--primary)" }}>Android</span>Dev
+            </h1>
+            <span className="hide-sm" style={{ fontSize: 12, color: "var(--muted-foreground)" }}>· {t("tagline")}</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {me.display_name && <span className="hide-sm" style={{ fontSize: 14, color: "var(--muted-foreground)" }}>{me.display_name}</span>}
+            <LanguageSelect persist profileId={me.id} sb={sb} />
+            <button onClick={onSignOut} className="btn-icon" title={t("signOut")}>{ICONS.logOut({ size: 16 })}</button>
+          </div>
+        </div>
+      </header>
+
+      <main style={{ maxWidth: 980, margin: "0 auto", padding: "32px 16px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 }}>
+          <h2 style={{ fontSize: "1.5rem", fontWeight: 700, margin: 0 }}>{t("rooms")}</h2>
+          <button onClick={() => setShowNew(true)} className="btn btn-primary">
+            {ICONS.plus({ size: 16 })} {t("newRoom")}
+          </button>
+        </div>
+
+        {loading ? (
+          <p style={{ color: "var(--muted-foreground)", fontSize: 14 }}>{t("loading")}</p>
+        ) : rooms.length === 0 ? (
+          <div className="card" style={{ padding: 36, textAlign: "center" }}>
+            {ICONS.messageSquare({ size: 32, style: { color: "var(--muted-foreground)", margin: "0 auto 12px" } })}
+            <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 16 }}>{t("noRoomsYet")}</p>
+            <button onClick={() => setShowNew(true)} className="btn btn-primary">{t("newRoom")}</button>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
+            {rooms.map(r => (
+              <button key={r.id} onClick={() => joinRoom(r)} className="card fade-in"
+                style={{ textAlign: "left", padding: 16, transition: "border-color .15s" }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = "color-mix(in oklch, var(--primary) 50%, var(--border))"}
+                onMouseLeave={e => e.currentTarget.style.borderColor = "var(--border)"}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center",
+                    fontWeight: 700, color: "white", background: r.accent_color, flexShrink: 0,
+                  }}>
+                    {r.name.slice(0, 1).toUpperCase()}
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.name}</h3>
+                    <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--muted-foreground)", display: "flex", alignItems: "center", gap: 4 }}>
+                      {ICONS.users({ size: 11 })} {r.is_member ? "Joined" : t("join")}
+                    </p>
+                  </div>
+                </div>
+                {r.description && <p style={{ margin: 0, fontSize: 13, color: "var(--muted-foreground)", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{r.description}</p>}
+              </button>
+            ))}
+          </div>
+        )}
+      </main>
+
+      {showNew && <NewRoomDialog onClose={() => setShowNew(false)} onCreate={createRoom} />}
+    </div>
+  );
+}
+
+function NewRoomDialog({ onClose, onCreate }) {
+  const { t } = useT();
+  const [name, setName] = useState("");
+  const [desc, setDesc] = useState("");
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 50 }}>
+      <div onClick={e => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 420, padding: 24 }}>
+        <h3 style={{ margin: "0 0 16px", fontSize: 17, fontWeight: 700 }}>{t("newRoom")}</h3>
+        <input autoFocus className="input" placeholder={t("roomName")} value={name} onChange={e => setName(e.target.value)}
+          style={{ marginBottom: 10 }} />
+        <textarea className="input" placeholder={t("roomDesc")} value={desc} onChange={e => setDesc(e.target.value)} rows={3} />
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 18 }}>
+          <button onClick={onClose} className="btn btn-ghost">{t("cancel")}</button>
+          <button disabled={!name.trim()} onClick={() => onCreate(name.trim(), desc.trim())} className="btn btn-primary">{t("create")}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+/* ============================================================
+   Reaction bar — emoji reactions on a message
+   ============================================================ */
+const EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🎉", "🔥", "👏"];
+function ReactionBar({ sb, messageId, myId, reactions }) {
+  const [open, setOpen] = useState(false);
+
+  async function toggleEmoji(emoji) {
+    const has = reactions[emoji] && reactions[emoji].has(myId);
+    if (has) {
+      await sb.from("message_reactions").delete().eq("message_id", messageId).eq("user_id", myId).eq("emoji", emoji);
+    } else {
+      await sb.from("message_reactions").insert({ message_id: messageId, user_id: myId, emoji });
+    }
+    setOpen(false);
+  }
+
+  const entries = Object.entries(reactions).filter(([, s]) => s.size > 0);
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap", marginTop: 2 }}>
+      {entries.map(([emoji, users]) => {
+        const mine = users.has(myId);
+        return (
+          <button key={emoji} onClick={() => toggleEmoji(emoji)} style={{
+            fontSize: 12, borderRadius: 999, padding: "2px 6px", border: "1px solid",
+            borderColor: mine ? "color-mix(in oklch, var(--primary) 40%, var(--border))" : "var(--border)",
+            background: mine ? "color-mix(in oklch, var(--primary) 15%, transparent)" : "var(--bg3)",
+          }}>
+            <span>{emoji}</span> <span style={{ fontSize: 10, color: "var(--muted-foreground)" }}>{users.size}</span>
+          </button>
+        );
+      })}
+      <div style={{ position: "relative" }}>
+        <button onClick={() => setOpen(v => !v)} className="btn-icon" style={{ padding: 2 }}>
+          {ICONS.smile({ size: 13 })}
+        </button>
+        {open && (
+          <Fragment>
+            <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 10 }} />
+            <div className="card" style={{ position: "absolute", bottom: "100%", marginBottom: 4, left: 0, padding: 6, display: "flex", gap: 4, zIndex: 20, boxShadow: "0 8px 24px rgba(0,0,0,.4)" }}>
+              {EMOJIS.map(e => (
+                <button key={e} onClick={() => toggleEmoji(e)} style={{
+                  fontSize: 18, background: "none", border: "none", borderRadius: 6, width: 28, height: 28,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}
+                onMouseEnter={ev => ev.currentTarget.style.background = "var(--bg3)"}
+                onMouseLeave={ev => ev.currentTarget.style.background = "none"}>{e}</button>
+              ))}
+            </div>
+          </Fragment>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   Event row (join/leave), date divider, typing indicator
+   ============================================================ */
+function EventRow({ kind, authorName, at }) {
+  const { t } = useT();
+  const label = kind === "join" ? t("joined") : t("left");
+  return (
+    <div style={{ display: "flex", justifyContent: "center" }}>
+      <div style={{ fontSize: 11, color: "var(--muted-foreground)", background: "color-mix(in oklch, var(--bg3) 60%, transparent)", border: "1px solid var(--border)", borderRadius: 999, padding: "4px 12px" }}>
+        <span style={{ fontWeight: 600, color: "color-mix(in oklch, var(--foreground) 80%, transparent)" }}>{authorName}</span>{" "}
+        <span>{label}</span>
+        <span style={{ opacity: 0.6 }}> · {formatTime(at)}</span>
+      </div>
+    </div>
+  );
+}
+function DateDivider({ label }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "12px 0" }}>
+      <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+      <span style={{ fontSize: 11, color: "var(--muted-foreground)" }}>{label}</span>
+      <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+    </div>
+  );
+}
+function TypingIndicator({ names }) {
+  const { t } = useT();
+  if (names.length === 0) return null;
+  const text = names.length === 1
+    ? `${names[0]} ${t("typing")}…`
+    : `${names.slice(0, 2).join(", ")}${names.length > 2 ? " +" + (names.length - 2) : ""} ${t("typing")}…`;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 12px", fontSize: 12, color: "var(--muted-foreground)" }}>
+      <span style={{ display: "flex", gap: 3 }}>
+        <span className="typing-dot" style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--muted-foreground)", animationDelay: "0ms" }} />
+        <span className="typing-dot" style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--muted-foreground)", animationDelay: "120ms" }} />
+        <span className="typing-dot" style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--muted-foreground)", animationDelay: "240ms" }} />
+      </span>
+      <span>{text}</span>
+    </div>
+  );
+}
+
+/* ============================================================
+   File preview / download for message attachments
+   ============================================================ */
+function FilePreview({ sb, attachment }) {
+  const { t } = useT();
+  const [open, setOpen] = useState(false);
+  const [content, setContent] = useState(null);
+  const [imageUrl, setImageUrl] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const kind = previewKind(attachment);
+
+  async function getSignedUrl() {
+    const { data, error } = await sb.storage.from("attachments").createSignedUrl(attachment.path, 3600);
+    if (error || !data) throw error || new Error("sign failed");
+    return data.signedUrl;
+  }
+
+  async function download() {
+    try {
+      const url = await getSignedUrl();
+      const a = document.createElement("a");
+      a.href = url; a.download = attachment.name; a.click();
+    } catch (e) { toast.error(e.message); }
+  }
+  async function view() {
+    if (kind === "none") { toast.error(t("cannotPreview")); return; }
+    setOpen(true);
+    if (content || imageUrl) return;
+    setLoading(true);
+    try {
+      const url = await getSignedUrl();
+      if (kind === "image") setImageUrl(url);
+      else { const res = await fetch(url); setContent(await res.text()); }
+    } catch (e) { toast.error(e.message); }
+    finally { setLoading(false); }
+  }
+  async function copyText() {
+    if (kind !== "text") { toast.error(t("cannotPreview")); return; }
+    try {
+      const url = await getSignedUrl();
+      const res = await fetch(url);
+      const txt = await res.text();
+      await navigator.clipboard.writeText(txt);
+      toast.success(t("copy") + " ✓");
+    } catch (e) { toast.error(e.message); }
+  }
+
+  return (
+    <Fragment>
+      <div className="card" style={{ padding: 10, display: "flex", alignItems: "center", gap: 8, minWidth: 0, maxWidth: 280 }}>
+        {ICONS.fileText({ size: 18, style: { color: "var(--muted-foreground)", flexShrink: 0 } })}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{attachment.name}</div>
+          <div style={{ fontSize: 10, color: "var(--muted-foreground)" }}>{formatBytes(attachment.size)}</div>
+        </div>
+        <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+          {kind !== "none" && <button onClick={view} title={t("viewFile")} className="btn-icon" style={{ padding: 4 }}>{ICONS.eye({ size: 14 })}</button>}
+          {kind === "text" && <button onClick={copyText} title={t("copy")} className="btn-icon" style={{ padding: 4 }}>{ICONS.copy({ size: 14 })}</button>}
+          <button onClick={download} title={t("download")} className="btn-icon" style={{ padding: 4 }}>{ICONS.download({ size: 14 })}</button>
+        </div>
+      </div>
+      {open && (
+        <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.7)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 50 }}>
+          <div onClick={e => e.stopPropagation()} className="card" style={{ maxWidth: 720, width: "100%", maxHeight: "85vh", display: "flex", flexDirection: "column" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: 12, borderBottom: "1px solid var(--border)" }}>
+              <span style={{ fontWeight: 600, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{attachment.name}</span>
+              <button onClick={() => setOpen(false)} className="btn-icon">{ICONS.x({ size: 16 })}</button>
+            </div>
+            <div style={{ flex: 1, overflow: "auto", padding: 12 }}>
+              {loading && <p style={{ fontSize: 13, color: "var(--muted-foreground)" }}>{t("loading")}</p>}
+              {!loading && kind === "image" && imageUrl && <img src={imageUrl} alt={attachment.name} style={{ maxWidth: "100%", margin: "0 auto", display: "block" }} />}
+              {!loading && kind === "text" && content !== null && (
+                <pre style={{ fontSize: 12, whiteSpace: "pre-wrap", wordBreak: "break-word", fontFamily: "ui-monospace, monospace", margin: 0 }}>{content}</pre>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </Fragment>
+  );
+}
+/* ============================================================
+   Message item — bubble, attachments, reactions, translation
+   ============================================================ */
+function MessageItem({ sb, geminiKey, message, isMine, authorName, viewerLang, readCount, reactions, myId }) {
+  const { t } = useT();
+  const src = (message.source_lang || "").slice(0, 2);
+  const target = viewerLang.slice(0, 2);
+  const needsTranslate = !!(src && src !== target && message.content.trim().length > 0 && geminiKey);
+
+  const [translated, setTranslated] = useState(null);
+  const [translating, setTranslating] = useState(false);
+  const [showOriginal, setShowOriginal] = useState(false);
+
+  useEffect(() => {
+    if (!needsTranslate) return;
+    let cancelled = false;
+    (async () => {
+      const { data: cached } = await sb.from("message_translations").select("text").eq("message_id", message.id).eq("lang", target).maybeSingle();
+      if (cancelled) return;
+      if (cached && cached.text) { setTranslated(cached.text); return; }
+      setTranslating(true);
+      try {
+        const out = await translateText(geminiKey, message.content, target, src);
+        if (cancelled) return;
+        setTranslated(out);
+        await sb.from("message_translations").insert({ message_id: message.id, lang: target, text: out });
+      } catch (e) { /* translation best-effort */ }
+      finally { if (!cancelled) setTranslating(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [message.id, needsTranslate, target, src]);
+
+  const showOrig = !needsTranslate || showOriginal || !translated;
+  const body = showOrig ? message.content : translated;
+  const atts = message.attachments || [];
+
+  return (
+    <div style={{ display: "flex", justifyContent: isMine ? "flex-end" : "flex-start" }}>
+      <div style={{ maxWidth: "78%", display: "flex", flexDirection: "column", gap: 4, alignItems: isMine ? "flex-end" : "flex-start" }}>
+        {!isMine && <span style={{ fontSize: 12, color: "var(--muted-foreground)", padding: "0 4px" }}>{authorName}</span>}
+        {body.trim().length > 0 && (
+          <div style={{
+            borderRadius: 16, padding: "8px 14px",
+            borderBottomRightRadius: isMine ? 4 : 16, borderBottomLeftRadius: isMine ? 16 : 4,
+            background: isMine ? "var(--primary)" : "var(--card)",
+            color: isMine ? "var(--primary-foreground)" : "var(--foreground)",
+            border: isMine ? "none" : "1px solid var(--border)",
+          }}>
+            <p style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", fontSize: 14, lineHeight: 1.4, margin: 0 }}>{body}</p>
+          </div>
+        )}
+        {atts.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {atts.map((a, i) => <FilePreview key={i} sb={sb} attachment={a} />)}
+          </div>
+        )}
+        <ReactionBar sb={sb} messageId={message.id} myId={myId} reactions={reactions} />
+        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--muted-foreground)", padding: "0 4px" }}>
+          <span>{formatTime(message.created_at)}</span>
+          {isMine && typeof readCount === "number" && readCount > 0 && (
+            <span style={{ color: "color-mix(in oklch, var(--primary) 80%, var(--muted-foreground))" }}>· {t("read")} {readCount}</span>
+          )}
+          {needsTranslate && (
+            <Fragment>
+              {translating && <span style={{ fontStyle: "italic" }}>translating…</span>}
+              {translated && !translating && (
+                <Fragment>
+                  <span>·</span>
+                  <span>{langName(src)} → {langName(target)} {t("translatedFrom")}</span>
+                  <button onClick={() => setShowOriginal(v => !v)} style={{ background: "none", border: "none", color: "var(--primary)", textDecoration: "underline", padding: 0, fontSize: 11 }}>
+                    {showOriginal ? t("translate") : t("showOriginal")}
+                  </button>
+                </Fragment>
+              )}
+            </Fragment>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   Rules modal — shown on first entry, translatable, with accept
+   ============================================================ */
+function RulesModal({ sb, geminiKey, rules, rulesLang, viewerLang, onAccept, onClose, showAccept }) {
+  const { t } = useT();
+  const src = (rulesLang || "").slice(0, 2);
+  const tgt = viewerLang.slice(0, 2);
+  const needs = !!(src && src !== tgt && geminiKey);
+  const [translated, setTranslated] = useState(null);
+  const [showOriginal, setShowOriginal] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!needs) return;
+    let cancelled = false;
+    (async () => {
+      setBusy(true);
+      try {
+        const out = await translateText(geminiKey, rules, tgt, src);
+        if (!cancelled) setTranslated(out);
+      } catch (e) {}
+      finally { if (!cancelled) setBusy(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [rules, needs, tgt, src]);
+
+  const body = !needs || showOriginal || !translated ? rules : translated;
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 50 }}>
+      <div className="card" style={{ width: "100%", maxWidth: 480, padding: 24 }}>
+        <h3 style={{ margin: "0 0 12px", fontSize: 17, fontWeight: 700 }}>{t("rules")}</h3>
+        <div style={{ whiteSpace: "pre-wrap", fontSize: 14, color: "color-mix(in oklch, var(--foreground) 90%, transparent)", maxHeight: "55vh", overflowY: "auto", background: "var(--bg3)", borderRadius: 8, padding: 12, border: "1px solid var(--border)" }}>
+          {body}
+        </div>
+        {needs && (
+          <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
+            {busy && <span style={{ fontStyle: "italic" }}>translating…</span>}
+            {translated && !busy && (
+              <Fragment>
+                <span>{langName(src)} → {langName(tgt)} {t("translatedFrom")}</span>
+                <button onClick={() => setShowOriginal(v => !v)} style={{ background: "none", border: "none", color: "var(--primary)", textDecoration: "underline", padding: 0 }}>
+                  {showOriginal ? t("translate") : t("showOriginal")}
+                </button>
+              </Fragment>
+            )}
+          </div>
+        )}
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 20 }}>
+          {!showAccept && onClose && <button onClick={onClose} className="btn btn-ghost">{t("cancel")}</button>}
+          <button onClick={showAccept ? onAccept : onClose} className="btn btn-primary">{t("accept")}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   Room settings — owner-only: name, description, color,
+   announcement, rules
+   ============================================================ */
+const ACCENT_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4", "#64748b"];
+function RoomSettingsDialog({ sb, geminiKey, room, onClose, onSaved }) {
+  const { t } = useT();
+  const [name, setName] = useState(room.name);
+  const [desc, setDesc] = useState(room.description || "");
+  const [color, setColor] = useState(room.accent_color);
+  const [announcement, setAnnouncement] = useState(room.announcement || "");
+  const [rules, setRules] = useState(room.rules || "");
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    setSaving(true);
+    try {
+      let rulesLang = room.rules_lang;
+      if (rules.trim() && rules !== (room.rules || "") && geminiKey) {
+        const detected = await detectLanguage(geminiKey, rules.trim());
+        if (detected) rulesLang = detected;
+      }
+      const { error } = await sb.from("rooms").update({
+        name: name.trim(),
+        description: desc.trim() || null,
+        accent_color: color,
+        announcement: announcement.trim() || null,
+        rules: rules.trim() || null,
+        rules_lang: rules.trim() ? rulesLang : null,
+      }).eq("id", room.id);
+      if (error) throw error;
+      toast.success("✓");
+      onSaved();
+      onClose();
+    } catch (e) { toast.error(e.message); }
+    finally { setSaving(false); }
+  }
+
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 50 }}>
+      <div onClick={e => e.stopPropagation()} className="card" style={{ width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto", padding: 24 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>{t("roomSettings")}</h3>
+          <button onClick={onClose} className="btn-icon">{ICONS.x({ size: 16 })}</button>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div>
+            <label className="field-label">{t("roomName")}</label>
+            <input className="input" value={name} onChange={e => setName(e.target.value)} />
+          </div>
+          <div>
+            <label className="field-label">{t("roomDesc")}</label>
+            <textarea className="input" value={desc} onChange={e => setDesc(e.target.value)} rows={2} />
+          </div>
+          <div>
+            <label className="field-label">{t("customize")} — accent</label>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {ACCENT_COLORS.map(c => (
+                <button key={c} onClick={() => setColor(c)} style={{
+                  width: 32, height: 32, borderRadius: 8, background: c,
+                  border: `2px solid ${color === c ? "var(--foreground)" : "transparent"}`,
+                }} />
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="field-label">{t("announcement")}</label>
+            <textarea className="input" value={announcement} onChange={e => setAnnouncement(e.target.value)} rows={2} />
+          </div>
+          <div>
+            <label className="field-label">{t("rules")}</label>
+            <textarea className="input" value={rules} onChange={e => setRules(e.target.value)} rows={5} />
+          </div>
+        </div>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 20 }}>
+          <button onClick={onClose} className="btn btn-ghost">{t("cancel")}</button>
+          <button onClick={save} disabled={saving || !name.trim()} className="btn btn-primary">{t("save")}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+/* ============================================================
+   Room page — the main chat view
+   ============================================================ */
+const MAX_FILE = 25 * 1024 * 1024;
+function ackKey(roomId, rules) {
+  let h = 0;
+  for (let i = 0; i < rules.length; i++) h = ((h << 5) - h + rules.charCodeAt(i)) | 0;
+  return `rules_ack:${roomId}:${h}`;
+}
+function formatDayLabel(iso, t) {
+  const d = new Date(iso);
+  const today = new Date();
+  if (d.toDateString() === today.toDateString()) return t("today");
+  const yest = new Date(today); yest.setDate(yest.getDate() - 1);
+  if (d.toDateString() === yest.toDateString()) return t("yesterday");
+  return formatDay(d);
+}
+
+function RoomPage({ sb, geminiKey, roomId, me, onLeave }) {
+  const { t } = useT();
+  const [room, setRoom] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [profiles, setProfiles] = useState({});
+  const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [memberCount, setMemberCount] = useState(0);
+  const [reads, setReads] = useState({});
+  const [reactions, setReactions] = useState({});
+  const [typingUsers, setTypingUsers] = useState({});
+  const [showRules, setShowRules] = useState(false);
+  const [rulesViewOnly, setRulesViewOnly] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const listEndRef = useRef(null);
+  const fileRef = useRef(null);
+  const channelRef = useRef(null);
+  const profilesRef = useRef(profiles);
+  profilesRef.current = profiles;
+  const myId = me.id;
+
+  async function hydrateProfiles(ids) {
+    const need = [...new Set(ids)].filter(id => !profilesRef.current[id]);
+    if (need.length === 0) return;
+    const { data } = await sb.from("profiles").select("id,display_name,preferred_lang").in("id", need);
+    if (data) setProfiles(p => ({ ...p, ...Object.fromEntries(data.map(x => [x.id, x])) }));
+  }
+
+  // initial load
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const { data: roomData, error: roomErr } = await sb.from("rooms")
+        .select("id,name,description,accent_color,owner_id,announcement,rules,rules_lang")
+        .eq("id", roomId).single();
+      if (roomErr || !roomData) { toast.error("Room not found"); onLeave(); return; }
+      if (mounted) setRoom(roomData);
+
+      const { data: mem } = await sb.from("room_members").select("user_id").eq("room_id", roomId).eq("user_id", myId).maybeSingle();
+      if (!mem) {
+        await sb.from("room_members").insert({ room_id: roomId, user_id: myId });
+        await sb.from("room_events").insert({ room_id: roomId, user_id: myId, type: "join" });
+      }
+
+      if (roomData.rules) {
+        const acked = localStorage.getItem(ackKey(roomId, roomData.rules));
+        if (!acked) { setRulesViewOnly(false); setShowRules(true); }
+      }
+
+      const { count } = await sb.from("room_members").select("user_id", { count: "exact", head: true }).eq("room_id", roomId);
+      if (mounted) setMemberCount(count || 0);
+
+      const [{ data: msgs }, { data: evs }] = await Promise.all([
+        sb.from("messages").select("id,room_id,user_id,content,source_lang,attachments,created_at,edited_at,deleted_at")
+          .eq("room_id", roomId).order("created_at", { ascending: true }).limit(300),
+        sb.from("room_events").select("id,room_id,user_id,type,created_at")
+          .eq("room_id", roomId).order("created_at", { ascending: true }).limit(300),
+      ]);
+      const msgList = msgs || [];
+      const evList = evs || [];
+      await hydrateProfiles([...msgList.map(m => m.user_id), ...evList.map(e => e.user_id)]);
+      if (!mounted) return;
+      setMessages(msgList);
+      setEvents(evList);
+
+      const ids = msgList.map(m => m.id);
+      if (ids.length > 0) {
+        const { data: rxs } = await sb.from("message_reactions").select("message_id,user_id,emoji").in("message_id", ids);
+        if (mounted && rxs) {
+          const map = {};
+          for (const r of rxs) { (map[r.message_id] ||= {}); (map[r.message_id][r.emoji] ||= new Set()).add(r.user_id); }
+          setReactions(map);
+        }
+      }
+      const myMsgIds = msgList.filter(m => m.user_id === myId).map(m => m.id);
+      if (myMsgIds.length > 0) {
+        const { data: rds } = await sb.from("message_reads").select("message_id,user_id").in("message_id", myMsgIds);
+        if (mounted && rds) {
+          const map = {};
+          for (const r of rds) (map[r.message_id] ||= new Set()).add(r.user_id);
+          setReads(map);
+        }
+      }
+      markRead(msgList);
+      requestAnimationFrame(() => listEndRef.current && listEndRef.current.scrollIntoView({ behavior: "auto" }));
+    })();
+    return () => { mounted = false; };
+  }, [roomId]);
+
+  // realtime subscriptions
+  useEffect(() => {
+    const channel = sb.channel(`room:${roomId}`, { config: { presence: { key: myId } } })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `room_id=eq.${roomId}` },
+        async (payload) => {
+          const m = payload.new;
+          await hydrateProfiles([m.user_id]);
+          setMessages(prev => prev.some(x => x.id === m.id) ? prev : [...prev, m]);
+          if (m.user_id !== myId) sb.from("message_reads").upsert({ message_id: m.id, user_id: myId }, { onConflict: "message_id,user_id" }).then(() => {});
+          requestAnimationFrame(() => listEndRef.current && listEndRef.current.scrollIntoView({ behavior: "smooth" }));
+        })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "room_events", filter: `room_id=eq.${roomId}` },
+        async (payload) => {
+          const e = payload.new;
+          await hydrateProfiles([e.user_id]);
+          setEvents(prev => prev.some(x => x.id === e.id) ? prev : [...prev, e]);
+          const { count } = await sb.from("room_members").select("user_id", { count: "exact", head: true }).eq("room_id", roomId);
+          setMemberCount(count || 0);
+        })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "message_reads" },
+        (payload) => {
+          const r = payload.new;
+          setReads(prev => { const next = { ...prev }; const s = new Set(next[r.message_id] || []); s.add(r.user_id); next[r.message_id] = s; return next; });
+        })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "message_reactions" },
+        (payload) => {
+          const r = payload.new;
+          setReactions(prev => {
+            const next = { ...prev }; const m = { ...(next[r.message_id] || {}) };
+            const s = new Set(m[r.emoji] || []); s.add(r.user_id); m[r.emoji] = s; next[r.message_id] = m; return next;
+          });
+        })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "message_reactions" },
+        (payload) => {
+          const r = payload.old;
+          setReactions(prev => {
+            const next = { ...prev }; const m = { ...(next[r.message_id] || {}) };
+            const s = new Set(m[r.emoji] || []); s.delete(r.user_id);
+            if (s.size === 0) delete m[r.emoji]; else m[r.emoji] = s;
+            next[r.message_id] = m; return next;
+          });
+        })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "rooms", filter: `id=eq.${roomId}` },
+        (payload) => setRoom(payload.new))
+      .on("presence", { event: "sync" }, () => {
+        const state = channel.presenceState();
+        const tt = {};
+        for (const [uid, metas] of Object.entries(state)) {
+          if (uid === myId) continue;
+          const last = metas[metas.length - 1];
+          if (last && last.typing) tt[uid] = last.name || (profilesRef.current[uid] && profilesRef.current[uid].display_name) || "…";
+        }
+        setTypingUsers(tt);
+      })
+      .subscribe(async (status) => { if (status === "SUBSCRIBED") await channel.track({ typing: false, name: me.display_name }); });
+    channelRef.current = channel;
+    return () => { sb.removeChannel(channel); channelRef.current = null; };
+  }, [roomId, myId]);
+
+  const typingTimeoutRef = useRef(null);
+  function emitTyping() {
+    const ch = channelRef.current;
+    if (!ch) return;
+    ch.track({ typing: true, name: me.display_name });
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => ch.track({ typing: false, name: me.display_name }), 2500);
+  }
+
+  async function markRead(msgs) {
+    const toMark = msgs.filter(m => m.user_id !== myId).map(m => ({ message_id: m.id, user_id: myId }));
+    if (toMark.length === 0) return;
+    await sb.from("message_reads").upsert(toMark, { onConflict: "message_id,user_id" });
+  }
+
+  async function send(attachments) {
+    attachments = attachments || [];
+    const text = input.trim();
+    if (!text && attachments.length === 0) return;
+    setSending(true);
+    try {
+      let sourceLang = null;
+      if (text && geminiKey) { sourceLang = await detectLanguage(geminiKey, text); }
+      const { error } = await sb.from("messages").insert({ room_id: roomId, user_id: myId, content: text, source_lang: sourceLang, attachments });
+      if (error) throw error;
+      setInput("");
+      if (channelRef.current) channelRef.current.track({ typing: false, name: me.display_name });
+    } catch (err) { toast.error(err.message); }
+    finally { setSending(false); }
+  }
+
+  async function onPickFile(e) {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > MAX_FILE) { toast.error(t("fileTooBig")); return; }
+    setUploading(true);
+    try {
+      const path = `${myId}/${Date.now()}-${file.name.replace(/[^\w.\-]/g, "_")}`;
+      const { error: upErr } = await sb.storage.from("attachments").upload(path, file, { contentType: file.type || "application/octet-stream" });
+      if (upErr) throw upErr;
+      await send([{ path, name: file.name, size: file.size, mime: file.type || "application/octet-stream" }]);
+    } catch (err) { toast.error(err.message); }
+    finally { setUploading(false); }
+  }
+
+  async function leaveRoom() {
+    if (!confirm(t("leave") + "?")) return;
+    await sb.from("room_events").insert({ room_id: roomId, user_id: myId, type: "leave" });
+    await sb.from("room_members").delete().eq("room_id", roomId).eq("user_id", myId);
+    onLeave();
+  }
+
+  function acceptRules() {
+    if (room && room.rules) localStorage.setItem(ackKey(roomId, room.rules), "1");
+    setShowRules(false);
+  }
+
+  const timeline = useMemo(() => {
+    const items = [
+      ...messages.map(m => ({ kind: "message", at: m.created_at, data: m })),
+      ...events.map(e => ({ kind: "event", at: e.created_at, data: e })),
+    ];
+    items.sort((a, b) => a.at.localeCompare(b.at));
+    return items;
+  }, [messages, events]);
+
+  if (!room) return <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted-foreground)" }}>{t("loading")}</div>;
+
+  const typingNames = Object.values(typingUsers);
+  const isOwner = room.owner_id === myId;
+  let prevDay = "";
+
+  return (
+    <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+      <header style={{ borderBottom: "1px solid var(--border)", background: "color-mix(in oklch, var(--card) 60%, transparent)", backdropFilter: "blur(8px)", padding: "10px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+        <button onClick={onLeave} className="btn-icon">{ICONS.arrowLeft({ size: 18 })}</button>
+        <div style={{ width: 36, height: 36, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "white", fontSize: 14, background: room.accent_color, flexShrink: 0 }}>
+          {room.name.slice(0, 1).toUpperCase()}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h1 style={{ margin: 0, fontWeight: 600, fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{room.name}</h1>
+          <p style={{ margin: 0, fontSize: 11, color: "var(--muted-foreground)", display: "flex", alignItems: "center", gap: 4 }}>
+            {ICONS.users({ size: 11 })} {memberCount} {t("members")}
+          </p>
+        </div>
+        {room.rules && (
+          <button onClick={() => { setRulesViewOnly(true); setShowRules(true); }} className="btn-icon" title={t("viewRules")}>{ICONS.bookOpen({ size: 16 })}</button>
+        )}
+        {isOwner && (
+          <button onClick={() => setShowSettings(true)} className="btn-icon" title={t("roomSettings")}>{ICONS.settings({ size: 16 })}</button>
+        )}
+        <LanguageSelect persist profileId={myId} sb={sb} />
+        <button onClick={leaveRoom} className="btn-icon" title={t("leave")}>{ICONS.logOut({ size: 16 })}</button>
+      </header>
+
+      {room.announcement && (
+        <div style={{ borderBottom: "1px solid var(--border)", background: "color-mix(in oklch, var(--primary) 10%, transparent)", padding: "8px 16px", fontSize: 13 }}>
+          <span style={{ fontWeight: 600, color: "var(--primary)" }}>{t("announcement")}: </span>
+          <span style={{ color: "color-mix(in oklch, var(--foreground) 90%, transparent)" }}>{room.announcement}</span>
+        </div>
+      )}
+
+      <main style={{ flex: 1, overflowY: "auto", padding: "16px 12px" }}>
+        {timeline.length === 0 ? (
+          <p style={{ textAlign: "center", fontSize: 14, color: "var(--muted-foreground)", marginTop: 48 }}>{t("empty")}</p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 720, margin: "0 auto" }}>
+            {timeline.map(it => {
+              const dayLabel = formatDayLabel(it.at, t);
+              const showDate = dayLabel !== prevDay;
+              prevDay = dayLabel;
+              return (
+                <div key={`${it.kind}:${it.data.id}`}>
+                  {showDate && dayLabel && <DateDivider label={dayLabel} />}
+                  {it.kind === "message" ? (
+                    <MessageItem
+                      sb={sb} geminiKey={geminiKey} message={it.data} isMine={it.data.user_id === myId}
+                      authorName={(profiles[it.data.user_id] && profiles[it.data.user_id].display_name) || "…"}
+                      viewerLang={me.preferred_lang}
+                      readCount={reads[it.data.id] ? [...reads[it.data.id]].filter(u => u !== myId).length : 0}
+                      reactions={reactions[it.data.id] || {}}
+                      myId={myId}
+                    />
+                  ) : (
+                    <EventRow kind={it.data.type} authorName={(profiles[it.data.user_id] && profiles[it.data.user_id].display_name) || "…"} at={it.data.created_at} />
+                  )}
+                </div>
+              );
+            })}
+            <div ref={listEndRef} />
+          </div>
+        )}
+      </main>
+
+      <TypingIndicator names={typingNames} />
+
+      <footer style={{ borderTop: "1px solid var(--border)", background: "color-mix(in oklch, var(--card) 60%, transparent)", backdropFilter: "blur(8px)", padding: 12 }}>
+        <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", gap: 8, alignItems: "flex-end" }}>
+          <input ref={fileRef} type="file" style={{ display: "none" }} onChange={onPickFile} />
+          <button onClick={() => fileRef.current && fileRef.current.click()} disabled={uploading} className="btn-icon" title={t("attach")} style={{ flexShrink: 0 }}>
+            {ICONS.paperclip({ size: 16 })}
+          </button>
+          <textarea
+            value={input}
+            onChange={e => { setInput(e.target.value); emitTyping(); }}
+            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+            placeholder={uploading ? t("uploading") : t("sendPlaceholder")}
+            rows={1}
+            className="input"
+            style={{ flex: 1, resize: "none", maxHeight: 128 }}
+          />
+          <button onClick={() => send()} disabled={!input.trim() || sending} className="btn btn-primary" title={t("send")}
+            style={{ width: 40, height: 40, borderRadius: 10, padding: 0, flexShrink: 0 }}>
+            {ICONS.send({ size: 16 })}
+          </button>
+        </div>
+      </footer>
+
+      {showRules && room.rules && (
+        <RulesModal sb={sb} geminiKey={geminiKey} rules={room.rules} rulesLang={room.rules_lang} viewerLang={me.preferred_lang}
+          showAccept={!rulesViewOnly} onAccept={acceptRules} onClose={() => setShowRules(false)} />
+      )}
+      {showSettings && (
+        <RoomSettingsDialog sb={sb} geminiKey={geminiKey} room={room} onClose={() => setShowSettings(false)}
+          onSaved={async () => {
+            const { data } = await sb.from("rooms").select("id,name,description,accent_color,owner_id,announcement,rules,rules_lang").eq("id", roomId).single();
+            if (data) setRoom(data);
+          }} />
+      )}
+    </div>
+  );
+}
+/* ============================================================
+   Root App — handles: Supabase connection setup, auth session,
+   profile load, and switching between rooms-list / room views.
+   No URL routing is used (kept as a single static file), so
+   navigation is purely in-memory state.
+   ============================================================ */
+function AppInner({ config }) {
+  const sb = useMemo(() => window.supabase.createClient(config.url, config.anonKey), [config.url, config.anonKey]);
+  const { setLang } = useT();
+  const [session, setSession] = useState(undefined); // undefined = loading, null = signed out
+  const [me, setMe] = useState(null);
+  const [view, setView] = useState({ name: "rooms" }); // { name: 'rooms' } | { name: 'room', roomId }
+
+  useEffect(() => {
+    sb.auth.getSession().then(({ data }) => setSession(data.session || null));
+    const { data: sub } = sb.auth.onAuthStateChange((_event, sess) => setSession(sess || null));
+    return () => sub.subscription.unsubscribe();
+  }, [sb]);
+
+  useEffect(() => {
+    if (!session) { setMe(null); return; }
+    let mounted = true;
+    (async () => {
+      const { data: prof } = await sb.from("profiles").select("id,display_name,preferred_lang").eq("id", session.user.id).single();
+      if (mounted && prof) {
+        setMe(prof);
+        if (prof.preferred_lang) setLang(prof.preferred_lang);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [session, sb]);
+
+  if (session === undefined) {
+    return <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted-foreground)" }}>…</div>;
+  }
+  if (!session) {
+    return <AuthPage sb={sb} onAuthed={() => setView({ name: "rooms" })} />;
+  }
+  if (!me) {
+    return <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted-foreground)" }}>…</div>;
+  }
+
+  async function signOut() {
+    await sb.auth.signOut();
+    setView({ name: "rooms" });
+  }
+
+  if (view.name === "room") {
+    return (
+      <RoomPage sb={sb} geminiKey={config.geminiKey} roomId={view.roomId} me={me}
+        onLeave={() => setView({ name: "rooms" })} />
+    );
+  }
+  return (
+    <RoomsPage sb={sb} me={me} onOpenRoom={(roomId) => setView({ name: "room", roomId })} onSignOut={signOut} />
+  );
+}
+
+function App() {
+  const [config, setConfig] = useState(loadSavedConfig);
+  return (
+    <I18nProvider>
+      {config
+        ? <AppInner config={config} />
+        : <SetupScreen onConnected={setConfig} />}
+    </I18nProvider>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+</script>
+</body>
+</html>
