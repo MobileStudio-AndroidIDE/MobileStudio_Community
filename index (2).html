@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>AndroidDev — 다국어 채팅</title>
+<meta name="description" content="실시간 자동 번역 채팅. 10개 언어 지원, 방장 도구, 이모지 반응, 파일 첨부, 규칙·공지." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --bg:#0b0d10;--surface:#12161b;--surface-2:#1a2027;--card:#171c22;
+  --border:#252b33;--muted:#8b96a3;--fg:#e6ebf2;--primary:#3ddc84;
+  --primary-fg:#06231a;--danger:#ff6b6b;--ring:rgba(61,220,132,.4);
+}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:14px/1.5 Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:transparent}
+a{color:var(--primary)}
+.app{display:flex;flex-direction:column;height:100dvh;max-width:680px;margin:0 auto;background:var(--surface)}
+.topbar{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:5}
+.topbar h1{font-size:15px;margin:0;flex:1;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.icon-btn{padding:6px 8px;border-radius:8px;color:var(--muted)}
+.icon-btn:hover{background:var(--surface-2);color:var(--fg)}
+.btn{padding:8px 14px;border-radius:10px;background:var(--primary);color:var(--primary-fg);font-weight:600}
+.btn:hover{filter:brightness(1.05)}
+.btn.ghost{background:var(--surface-2);color:var(--fg)}
+.btn.sm{padding:5px 10px;font-size:12px;border-radius:8px}
+.btn.danger{background:var(--danger);color:#fff}
+.input,.select,.textarea{width:100%;padding:10px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;outline:none}
+.input:focus,.select:focus,.textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--ring)}
+.textarea{resize:vertical;min-height:80px;font-family:inherit}
+.muted{color:var(--muted);font-size:12px}
+.center{display:flex;align-items:center;justify-content:center;flex:1;padding:24px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px}
+.row{display:flex;gap:8px;align-items:center}
+.col{display:flex;flex-direction:column;gap:10px}
+hr{border:0;border-top:1px solid var(--border);margin:12px 0}
+.list{flex:1;overflow:auto;padding:8px}
+.room-item{display:flex;gap:10px;align-items:center;padding:12px;border-radius:12px;cursor:pointer}
+.room-item:hover{background:var(--surface-2)}
+.room-item .avatar{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-weight:700;color:#06231a}
+.empty{padding:40px 20px;text-align:center;color:var(--muted)}
+.chat-list{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:6px;background:var(--bg)}
+.msg{display:flex;flex-direction:column;gap:3px;max-width:82%}
+.msg.mine{align-self:flex-end;align-items:flex-end}
+.bubble{padding:8px 12px;border-radius:16px;background:var(--card);border:1px solid var(--border);white-space:pre-wrap;word-break:break-word}
+.msg.mine .bubble{background:var(--primary);color:var(--primary-fg);border-color:transparent;border-bottom-right-radius:4px}
+.msg:not(.mine) .bubble{border-bottom-left-radius:4px}
+.meta{font-size:10.5px;color:var(--muted);padding:0 4px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.meta .read{color:var(--primary)}
+.author{font-size:11px;color:var(--muted);padding:0 4px}
+.translate-info{font-size:10.5px;color:var(--muted)}
+.translate-info button{color:var(--primary);text-decoration:underline;padding:0 2px}
+.event{align-self:center;font-size:11px;color:var(--muted);background:var(--surface-2);padding:3px 10px;border-radius:999px;margin:4px 0}
+.date-div{align-self:center;font-size:11px;color:var(--muted);padding:6px 0}
+.reactions{display:flex;gap:4px;flex-wrap:wrap;padding:2px}
+.reaction{background:var(--surface-2);border:1px solid var(--border);padding:1px 8px;border-radius:12px;font-size:11px;cursor:pointer}
+.reaction.mine{background:rgba(61,220,132,.18);border-color:var(--primary)}
+.composer{border-top:1px solid var(--border);padding:8px;display:flex;gap:6px;align-items:flex-end;background:var(--surface)}
+.composer textarea{flex:1;background:var(--surface-2);border:1px solid var(--border);border-radius:18px;padding:10px 14px;resize:none;max-height:120px;outline:none}
+.composer textarea:focus{border-color:var(--primary)}
+.attach{padding:8px;border-radius:50%;color:var(--muted)}
+.attach:hover{background:var(--surface-2);color:var(--fg)}
+.send{padding:9px 14px;border-radius:50%;background:var(--primary);color:var(--primary-fg);font-weight:700}
+.file-card{background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:8px 10px;display:flex;gap:8px;align-items:center;min-width:200px;max-width:280px}
+.file-card .name{flex:1;min-width:0;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal-card{background:var(--card);border:1px solid var(--border);border-radius:16px;max-width:520px;width:100%;max-height:90dvh;display:flex;flex-direction:column;overflow:hidden}
+.modal-head{display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);font-weight:600}
+.modal-body{padding:16px;overflow:auto;flex:1}
+.modal-foot{padding:12px 16px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+.typing{padding:4px 16px;font-size:11px;color:var(--muted);font-style:italic;min-height:20px}
+.tabs{display:flex;gap:4px;padding:4px;background:var(--surface-2);border-radius:10px;margin-bottom:12px}
+.tabs button{flex:1;padding:8px;border-radius:7px;color:var(--muted);font-weight:600}
+.tabs button.active{background:var(--card);color:var(--fg)}
+.emoji-pop{position:absolute;bottom:64px;left:8px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:8px;display:flex;flex-wrap:wrap;gap:4px;max-width:280px;z-index:10}
+.emoji-pop button{font-size:20px;padding:4px;border-radius:6px}
+.emoji-pop button:hover{background:var(--surface-2)}
+.code-view{background:#000;color:#e6ebf2;font-family:ui-monospace,monospace;font-size:12px;padding:12px;border-radius:8px;white-space:pre-wrap;word-break:break-word;max-height:60dvh;overflow:auto}
+img.preview{max-width:100%;border-radius:8px;display:block;margin:0 auto}
+label{font-size:12px;color:var(--muted);margin-bottom:4px;display:block}
+.notice{background:rgba(61,220,132,.08);border:1px solid rgba(61,220,132,.3);padding:10px 12px;border-radius:10px;font-size:13px;margin-bottom:10px}
+.ann{background:var(--surface-2);border-bottom:1px solid var(--border);padding:8px 12px;font-size:12px;display:flex;gap:8px;align-items:flex-start}
+.ann .pin{color:var(--primary)}
+</style>
+</head>
+<body>
+<div id="root" class="app"></div>
+
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
+// ---------------- config ----------------
+const SUPABASE_URL = "https://uglfaoqtyjlbfabdgnis.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnbGZhb3F0eWpsYmZhYmRnbmlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NjE5MTUsImV4cCI6MjA5ODEzNzkxNX0.Xvp3G4D9RkSEWFwczdt6LHf7wDEcMEhVIH5PxPhdbm0";
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY, { auth:{ persistSession:true, autoRefreshToken:true }});
+const SYNTH_DOMAIN = "accounts.androiddev.local"; // 같은 gmail로 여러 계정 허용
+
+// ---------------- i18n ----------------
+const LANGS = [
+  ["ko","🇰🇷","한국어"],["en","🇺🇸","English"],["ja","🇯🇵","日本語"],["zh","🇨🇳","中文"],
+  ["es","🇪🇸","Español"],["fr","🇫🇷","Français"],["de","🇩🇪","Deutsch"],["ru","🇷🇺","Русский"],
+  ["pt","🇵🇹","Português"],["vi","🇻🇳","Tiếng Việt"]
+];
+const T = {
+  ko:{signin:"로그인",signup:"회원가입",username:"아이디",password:"비밀번호",displayName:"이름",gmail:"Gmail (선택)",rooms:"채팅방",newRoom:"새 채팅방",roomName:"방 이름",description:"설명",create:"만들기",cancel:"취소",send:"전송",leave:"나가기",settings:"설정",rules:"규칙",viewRules:"규칙 보기",announcement:"공지",ok:"확인",save:"저장",accept:"동의",showOriginal:"원본보기",translate:"번역하기",translated:"번역됨",read:"읽음",typing:"입력 중…",joined:"님이 입장했습니다",left:"님이 나갔습니다",cannotPreview:"이 파일은 미리보기 할 수 없습니다",download:"다운로드",copy:"복사",view:"보기",viewFile:"파일 보기",accent:"강조색",signOut:"로그아웃",language:"언어",empty:"아직 채팅방이 없습니다",joinedAt:"입장 시점 이후 메시지만 표시됩니다",today:"오늘",yesterday:"어제",noRules:"규칙이 없습니다",rulesIntro:"이 방의 규칙입니다. 동의하시면 확인을 눌러주세요.",noAnnouncement:"공지가 없습니다",messagePlaceholder:"메시지를 입력하세요…",welcome:"AndroidDev 다국어 채팅",welcomeDesc:"10개 언어 자동 번역으로 어디서든 대화하세요",loading:"로딩 중…"}
+};
+T.en={signin:"Sign in",signup:"Sign up",username:"Username",password:"Password",displayName:"Display name",gmail:"Gmail (optional)",rooms:"Rooms",newRoom:"New room",roomName:"Room name",description:"Description",create:"Create",cancel:"Cancel",send:"Send",leave:"Leave",settings:"Settings",rules:"Rules",viewRules:"View rules",announcement:"Announcement",ok:"OK",save:"Save",accept:"Accept",showOriginal:"Show original",translate:"Translate",translated:"translated",read:"Read",typing:"typing…",joined:"joined",left:"left",cannotPreview:"This file cannot be previewed",download:"Download",copy:"Copy",view:"View",viewFile:"View file",accent:"Accent color",signOut:"Sign out",language:"Language",empty:"No rooms yet",joinedAt:"Showing messages from when you joined",today:"Today",yesterday:"Yesterday",noRules:"No rules",rulesIntro:"Room rules. Press OK to accept.",noAnnouncement:"No announcement",messagePlaceholder:"Type a message…",welcome:"AndroidDev Multilingual Chat",welcomeDesc:"Chat in any language with auto-translation",loading:"Loading…"};
+// fallback for other langs → english strings; UI labels stay readable
+["ja","zh","es","fr","de","ru","pt","vi"].forEach(l=>T[l]=T.en);
+let LANG = localStorage.getItem("lang") || (navigator.language||"en").slice(0,2);
+if(!T[LANG]) LANG="en";
+const t = (k)=> T[LANG]?.[k] ?? T.en[k] ?? k;
+
+// ---------------- free translation (Google gtx, unlimited, no key) ----------------
+const tCache = new Map();
+async function translate(text, target, source){
+  if(!text || !target) return text;
+  const key = `${target}|${(source||"")}|${text}`;
+  if(tCache.has(key)) return tCache.get(key);
+  const cached = localStorage.getItem("tr:"+key);
+  if(cached){ tCache.set(key,cached); return cached; }
+  try{
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${encodeURIComponent(source||"auto")}&tl=${encodeURIComponent(target)}&dt=t&q=${encodeURIComponent(text)}`;
+    const r = await fetch(url);
+    const j = await r.json();
+    const out = (j[0]||[]).map(s=>s[0]).join("");
+    const detected = j[2];
+    tCache.set(key,out);
+    try{ localStorage.setItem("tr:"+key,out); }catch{}
+    return { text: out, detected };
+  }catch(e){ return { text, detected:source||"en" }; }
+}
+async function detectLang(text){
+  try{
+    const r = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(text.slice(0,200))}`);
+    const j = await r.json();
+    return j[2] || "en";
+  }catch{ return "en"; }
+}
+
+// ---------------- helpers ----------------
+const el = (tag, props={}, ...children)=>{
+  const e = document.createElement(tag);
+  for(const [k,v] of Object.entries(props)){
+    if(k==="class") e.className=v;
+    else if(k==="style") Object.assign(e.style,v);
+    else if(k.startsWith("on")) e.addEventListener(k.slice(2).toLowerCase(),v);
+    else if(k==="html") e.innerHTML=v;
+    else if(v!=null && v!==false) e.setAttribute(k,v);
+  }
+  for(const c of children.flat()){
+    if(c==null||c===false) continue;
+    e.appendChild(typeof c==="string"?document.createTextNode(c):c);
+  }
+  return e;
+};
+const root = document.getElementById("root");
+const mount = (node)=>{ root.replaceChildren(node); };
+const fmtTime = (iso)=>{ const d=new Date(iso); return d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}); };
+const dayKey = (iso)=>{ const d=new Date(iso); return d.toISOString().slice(0,10); };
+const dayLabel = (iso)=>{
+  const d=new Date(iso); const today=new Date(); const yest=new Date(Date.now()-86400000);
+  if(d.toDateString()===today.toDateString()) return t("today");
+  if(d.toDateString()===yest.toDateString()) return t("yesterday");
+  return d.toLocaleDateString();
+};
+const hash = (s)=>{ let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))|0; return Math.abs(h); };
+const accent = (s)=>{ const colors=["#3ddc84","#6cb4ee","#f59e0b","#ec4899","#a78bfa","#f87171"]; return colors[hash(s)%colors.length]; };
+
+// ---------------- state ----------------
+let session=null, profile=null, currentRoom=null, channel=null, presenceChannel=null;
+
+async function loadProfile(){
+  if(!session) return null;
+  const { data } = await sb.from("profiles").select("*").eq("id",session.user.id).single();
+  profile = data;
+  if(profile?.preferred_lang && T[profile.preferred_lang]){ LANG=profile.preferred_lang; localStorage.setItem("lang",LANG); }
+  return data;
+}
+
+// ---------------- AUTH ----------------
+function renderAuth(){
+  let mode="signin";
+  const form = el("div",{class:"col"});
+  const tabs = el("div",{class:"tabs"},
+    el("button",{class:"active",onclick:()=>{mode="signin";refresh()}},t("signin")),
+    el("button",{onclick:()=>{mode="signup";refresh()}},t("signup")),
+  );
+  const langSel = el("select",{class:"select",onchange:e=>{LANG=e.target.value;localStorage.setItem("lang",LANG);renderAuth()}},
+    ...LANGS.map(([c,f,n])=>el("option",{value:c,selected:c===LANG||undefined},`${f} ${n}`)));
+
+  function refresh(){
+    [...tabs.children].forEach((b,i)=>b.className=(i===0&&mode==="signin")||(i===1&&mode==="signup")?"active":"");
+    form.replaceChildren(...buildForm());
+  }
+  function buildForm(){
+    const u=el("input",{class:"input",placeholder:t("username"),autocomplete:"username"});
+    const p=el("input",{class:"input",type:"password",placeholder:t("password"),autocomplete:"current-password"});
+    const fields=[el("label",{},t("username")),u,el("label",{},t("password")),p];
+    let d,g;
+    if(mode==="signup"){
+      d=el("input",{class:"input",placeholder:t("displayName")});
+      g=el("input",{class:"input",type:"email",placeholder:t("gmail")});
+      fields.push(el("label",{},t("displayName")),d,el("label",{},t("gmail")),g);
+    }
+    const err = el("div",{class:"muted",style:{color:"var(--danger)"}});
+    const submit = el("button",{class:"btn",onclick:async()=>{
+      err.textContent="";
+      const username=u.value.trim().toLowerCase();
+      if(!/^[a-z0-9_]{3,20}$/.test(username)){ err.textContent="아이디는 3-20자 영숫자/_"; return; }
+      if(!p.value || p.value.length<6){ err.textContent="비밀번호 6자 이상"; return; }
+      const email = `${username}@${SYNTH_DOMAIN}`;
+      try{
+        if(mode==="signup"){
+          const { data, error } = await sb.auth.signUp({ email, password:p.value, options:{ data:{ display_name:d.value.trim()||username, preferred_lang:LANG, gmail:g.value.trim()||null }}});
+          if(error) throw error;
+          if(!data.session){ const { error:e2 } = await sb.auth.signInWithPassword({ email, password:p.value }); if(e2) throw e2; }
+        } else {
+          const { error } = await sb.auth.signInWithPassword({ email, password:p.value }); if(error) throw error;
+        }
+      }catch(e){ err.textContent=e.message||String(e); }
+    }},mode==="signin"?t("signin"):t("signup"));
+    return [...fields,err,submit];
+  }
+  refresh();
+  mount(el("div",{class:"app"},
+    el("div",{class:"topbar"},el("h1",{},t("welcome")),langSel),
+    el("div",{class:"center"},
+      el("div",{class:"card",style:{width:"100%",maxWidth:"360px"}},
+        el("div",{class:"muted",style:{marginBottom:"12px"}},t("welcomeDesc")),
+        tabs, form,
+        el("div",{class:"muted",style:{marginTop:"10px",fontSize:"11px"}},"같은 Gmail로 여러 계정 생성 가능")
+      )
+    )
+  ));
+}
+
+// ---------------- ROOM LIST ----------------
+async function renderRooms(){
+  const list = el("div",{class:"list"});
+  mount(el("div",{class:"app"},
+    el("div",{class:"topbar"},
+      el("h1",{},t("rooms")),
+      el("select",{class:"select",style:{width:"auto",padding:"4px 8px"},onchange:async e=>{
+        LANG=e.target.value; localStorage.setItem("lang",LANG);
+        await sb.from("profiles").update({preferred_lang:LANG}).eq("id",session.user.id);
+        renderRooms();
+      }},...LANGS.map(([c,f,n])=>el("option",{value:c,selected:c===LANG||undefined},`${f} ${n}`))),
+      el("button",{class:"btn sm",onclick:openCreateRoom},"＋"),
+      el("button",{class:"icon-btn",onclick:async()=>{await sb.auth.signOut();}},"⎋")
+    ),
+    list
+  ));
+  // Public rooms + my rooms
+  const { data: my } = await sb.from("room_members").select("room_id").eq("user_id",session.user.id);
+  const myIds = (my||[]).map(r=>r.room_id);
+  const { data: pub } = await sb.from("rooms").select("*").or(`is_public.eq.true${myIds.length?`,id.in.(${myIds.join(",")})`:""}`).order("updated_at",{ascending:false});
+  const rooms = pub||[];
+  if(!rooms.length){ list.appendChild(el("div",{class:"empty"},t("empty"))); return; }
+  rooms.forEach(r=>{
+    list.appendChild(el("div",{class:"room-item",onclick:()=>openRoom(r.id)},
+      el("div",{class:"avatar",style:{background:r.accent_color||accent(r.name)}},r.name.slice(0,1).toUpperCase()),
+      el("div",{style:{flex:1,minWidth:0}},
+        el("div",{style:{fontWeight:600}},r.name),
+        el("div",{class:"muted",style:{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},r.description||"")
+      )
+    ));
+  });
+}
+
+function openCreateRoom(){
+  const name=el("input",{class:"input",placeholder:t("roomName")});
+  const desc=el("textarea",{class:"textarea",placeholder:t("description")});
+  const rules=el("textarea",{class:"textarea",placeholder:t("rules")});
+  const ann=el("textarea",{class:"textarea",placeholder:t("announcement")});
+  showModal(t("newRoom"),
+    el("div",{class:"col"},
+      el("label",{},t("roomName")),name,
+      el("label",{},t("description")),desc,
+      el("label",{},t("rules")),rules,
+      el("label",{},t("announcement")),ann
+    ),[
+      {label:t("cancel"),onclick:closeModal,ghost:true},
+      {label:t("create"),onclick:async()=>{
+        if(!name.value.trim()) return;
+        const { data, error } = await sb.from("rooms").insert({
+          name:name.value.trim(), description:desc.value.trim()||null,
+          rules:rules.value.trim()||null, announcement:ann.value.trim()||null,
+          owner_id:session.user.id, accent_color:accent(name.value)
+        }).select().single();
+        if(error){ alert(error.message); return; }
+        closeModal(); openRoom(data.id);
+      }}
+    ]
+  );
+}
+
+// ---------------- ROOM ----------------
+async function openRoom(roomId){
+  currentRoom = roomId;
+  // ensure member
+  let { data: mem } = await sb.from("room_members").select("*").eq("room_id",roomId).eq("user_id",session.user.id).maybeSingle();
+  if(!mem){
+    await sb.from("room_members").insert({ room_id:roomId, user_id:session.user.id });
+    await sb.from("room_events").insert({ room_id:roomId, user_id:session.user.id, type:"join" });
+    ({ data: mem } = await sb.from("room_members").select("*").eq("room_id",roomId).eq("user_id",session.user.id).maybeSingle());
+  }
+  const { data: room } = await sb.from("rooms").select("*").eq("id",roomId).single();
+  renderRoom(room, mem);
+}
+
+async function renderRoom(room, mem){
+  document.documentElement.style.setProperty("--primary", room.accent_color||"#3ddc84");
+  const chatList = el("div",{class:"chat-list"});
+  const typingBar = el("div",{class:"typing"});
+  const ann = room.announcement ? el("div",{class:"ann"},el("span",{class:"pin"},"📌"),el("div",{},room.announcement)) : null;
+
+  const composer = renderComposer(room);
+
+  const header = el("div",{class:"topbar"},
+    el("button",{class:"icon-btn",onclick:async()=>{
+      cleanupRoom();
+      await sb.from("room_events").insert({ room_id:room.id, user_id:session.user.id, type:"leave" });
+      renderRooms();
+    }},"←"),
+    el("h1",{},room.name),
+    room.rules?el("button",{class:"icon-btn",title:t("viewRules"),onclick:()=>showRules(room,false)},"📜"):null,
+    room.owner_id===session.user.id?el("button",{class:"icon-btn",onclick:()=>openSettings(room)},"⚙"):null,
+    el("button",{class:"icon-btn",onclick:async()=>{
+      cleanupRoom();
+      await sb.from("room_members").delete().eq("room_id",room.id).eq("user_id",session.user.id);
+      await sb.from("room_events").insert({ room_id:room.id, user_id:session.user.id, type:"leave" });
+      renderRooms();
+    }},"⏻")
+  );
+
+  mount(el("div",{class:"app"},header,ann,chatList,typingBar,composer));
+
+  // notice about visibility from join time
+  chatList.appendChild(el("div",{class:"event"},t("joinedAt")));
+
+  // Load messages + events from joined_at onward
+  await loadTimeline(room, mem, chatList);
+
+  // Show rules modal if not accepted
+  if(room.rules && !mem.rules_accepted_at){
+    showRules(room, true);
+  }
+
+  // Realtime
+  setupRealtime(room, mem, chatList, typingBar);
+}
+
+function cleanupRoom(){
+  if(channel){ sb.removeChannel(channel); channel=null; }
+  if(presenceChannel){ sb.removeChannel(presenceChannel); presenceChannel=null; }
+  document.documentElement.style.setProperty("--primary","#3ddc84");
+}
+
+async function loadTimeline(room, mem, chatList){
+  const since = mem.joined_at;
+  const [{ data: msgs }, { data: evts }, { data: members }] = await Promise.all([
+    sb.from("messages").select("*").eq("room_id",room.id).gte("created_at",since).order("created_at"),
+    sb.from("room_events").select("*").eq("room_id",room.id).gte("created_at",since).order("created_at"),
+    sb.from("room_members").select("user_id,role").eq("room_id",room.id),
+  ]);
+  const userIds = new Set([...(msgs||[]).map(m=>m.user_id),...(evts||[]).map(e=>e.user_id)]);
+  const { data: profs } = await sb.from("profiles").select("id,display_name").in("id",[...userIds]);
+  const nameMap = new Map((profs||[]).map(p=>[p.id,p.display_name]));
+
+  // read counts
+  const msgIds = (msgs||[]).map(m=>m.id);
+  let readMap = new Map();
+  if(msgIds.length){
+    const { data: reads } = await sb.from("message_reads").select("message_id").in("message_id",msgIds);
+    (reads||[]).forEach(r=>readMap.set(r.message_id,(readMap.get(r.message_id)||0)+1));
+  }
+  // reactions
+  let rxMap = new Map();
+  if(msgIds.length){
+    const { data: rx } = await sb.from("message_reactions").select("*").in("message_id",msgIds);
+    (rx||[]).forEach(r=>{
+      if(!rxMap.has(r.message_id)) rxMap.set(r.message_id,{});
+      const m=rxMap.get(r.message_id); if(!m[r.emoji]) m[r.emoji]=[];
+      m[r.emoji].push(r.user_id);
+    });
+  }
+
+  const items = [
+    ...(msgs||[]).map(m=>({kind:"msg",at:m.created_at,data:m})),
+    ...(evts||[]).map(e=>({kind:"evt",at:e.created_at,data:e})),
+  ].sort((a,b)=>a.at.localeCompare(b.at));
+
+  let lastDay = "";
+  for(const it of items){
+    const dk = dayKey(it.at);
+    if(dk!==lastDay){ chatList.appendChild(el("div",{class:"date-div"},dayLabel(it.at))); lastDay=dk; }
+    if(it.kind==="evt"){
+      chatList.appendChild(el("div",{class:"event"},`${nameMap.get(it.data.user_id)||"?"} ${it.data.type==="join"?t("joined"):t("left")}`));
+    } else {
+      const m=it.data;
+      chatList.appendChild(renderMessage(m, nameMap.get(m.user_id)||"?", readMap.get(m.id)||0, rxMap.get(m.id)||{}, room));
+      // mark read
+      if(m.user_id!==session.user.id){
+        sb.from("message_reads").upsert({ message_id:m.id, user_id:session.user.id },{ onConflict:"message_id,user_id" });
+      }
+    }
+  }
+  chatList.scrollTop = chatList.scrollHeight;
+}
+
+function renderMessage(m, author, readCount, reactions, room){
+  const isMine = m.user_id===session.user.id;
+  const wrap = el("div",{class:"msg"+(isMine?" mine":""),"data-mid":m.id});
+  if(!isMine) wrap.appendChild(el("div",{class:"author"},author));
+
+  if(m.content && m.content.trim()){
+    const bubble = el("div",{class:"bubble"},m.content);
+    wrap.appendChild(bubble);
+    // auto translate
+    const src=(m.source_lang||"").slice(0,2);
+    if(src && src!==LANG){
+      const info = el("div",{class:"translate-info"},"…");
+      wrap.appendChild(info);
+      let showingOriginal=false, translated=null;
+      translate(m.content, LANG, src).then(res=>{
+        translated = typeof res==="string"?res:res.text;
+        renderInfo();
+      });
+      function renderInfo(){
+        info.replaceChildren();
+        if(translated && !showingOriginal){
+          bubble.textContent = translated;
+        } else {
+          bubble.textContent = m.content;
+        }
+        info.append(
+          document.createTextNode(`${src} → ${LANG} ${t("translated")} · `),
+          el("button",{onclick:()=>{showingOriginal=!showingOriginal;renderInfo();}}, showingOriginal?t("translate"):t("showOriginal"))
+        );
+      }
+    }
+  }
+
+  // attachments
+  const atts = m.attachments||[];
+  if(Array.isArray(atts) && atts.length){
+    atts.forEach(a=>wrap.appendChild(renderFile(a)));
+  }
+
+  // reactions
+  const rx = el("div",{class:"reactions"});
+  const renderRx = ()=>{
+    rx.replaceChildren();
+    for(const [emo,users] of Object.entries(reactions)){
+      const mine = users.includes(session.user.id);
+      rx.appendChild(el("button",{class:"reaction"+(mine?" mine":""),onclick:async()=>{
+        if(mine){ await sb.from("message_reactions").delete().eq("message_id",m.id).eq("user_id",session.user.id).eq("emoji",emo); }
+        else { await sb.from("message_reactions").insert({ message_id:m.id, user_id:session.user.id, emoji:emo }); }
+      }},`${emo} ${users.length}`));
+    }
+    rx.appendChild(el("button",{class:"reaction",onclick:e=>openEmojiPick(e.currentTarget,async(emo)=>{
+      await sb.from("message_reactions").upsert({ message_id:m.id, user_id:session.user.id, emoji:emo },{ onConflict:"message_id,user_id,emoji" });
+    })},"+ 😊"));
+  };
+  renderRx();
+  wrap.appendChild(rx);
+  wrap._renderRx = (newRx)=>{ reactions=newRx; renderRx(); };
+
+  const meta = el("div",{class:"meta"},fmtTime(m.created_at));
+  if(isMine && readCount>0) meta.appendChild(el("span",{class:"read"},`· ${t("read")} ${readCount}`));
+  wrap.appendChild(meta);
+  wrap._setRead = (n)=>{ if(!isMine) return; const r=meta.querySelector(".read"); if(r) r.textContent=`· ${t("read")} ${n}`; else if(n>0) meta.appendChild(el("span",{class:"read"},`· ${t("read")} ${n}`)); };
+  return wrap;
+}
+
+const BLOCKED = new Set(["apk","jar","lock","zip","rar","7z","tar","gz","exe","dll","so","bin"]);
+function previewKind(name, mime){
+  const ext=(name.split(".").pop()||"").toLowerCase();
+  if(BLOCKED.has(ext)) return "none";
+  if((mime||"").startsWith("image/")) return "image";
+  if((mime||"").startsWith("text/")||["json","js","ts","tsx","jsx","md","xml","yml","yaml","kt","java","py","css","html","gradle","properties","sh","txt"].includes(ext)) return "text";
+  return "none";
+}
+async function signedUrl(path){
+  const { data } = await sb.storage.from("attachments").createSignedUrl(path,3600);
+  return data?.signedUrl;
+}
+function renderFile(a){
+  const kind = previewKind(a.name,a.mime);
+  const box = el("div",{class:"file-card"},
+    el("span",{},"📄"),
+    el("div",{class:"name"},a.name),
+    el("span",{class:"muted",style:{fontSize:"10px"}},`${(a.size/1024).toFixed(0)}KB`)
+  );
+  const acts = el("div",{style:{display:"flex",gap:"2px"}});
+  if(kind!=="none") acts.appendChild(el("button",{class:"icon-btn",title:t("view"),onclick:async()=>{
+    const url=await signedUrl(a.path); if(!url) return;
+    if(kind==="image") showModal(a.name,el("img",{class:"preview",src:url}),[{label:t("ok"),onclick:closeModal}]);
+    else { const txt=await (await fetch(url)).text(); showModal(a.name,el("pre",{class:"code-view"},txt),[{label:t("copy"),onclick:async()=>{await navigator.clipboard.writeText(txt);alert("✓");}},{label:t("ok"),onclick:closeModal}]); }
+  }},"👁"));
+  if(kind==="text") acts.appendChild(el("button",{class:"icon-btn",title:t("copy"),onclick:async()=>{
+    const url=await signedUrl(a.path); const txt=await (await fetch(url)).text(); await navigator.clipboard.writeText(txt); alert("✓");
+  }},"⎘"));
+  acts.appendChild(el("button",{class:"icon-btn",title:t("download"),onclick:async()=>{
+    const url=await signedUrl(a.path); if(!url) return;
+    const x=document.createElement("a"); x.href=url; x.download=a.name; x.click();
+  }},"⬇"));
+  box.appendChild(acts);
+  if(kind==="none") box.appendChild(el("span",{class:"muted",style:{fontSize:"10px",width:"100%",marginTop:"4px"}},t("cannotPreview")));
+  return box;
+}
+
+function renderComposer(room){
+  const ta = el("textarea",{rows:1,placeholder:t("messagePlaceholder"),oninput:()=>{
+    ta.style.height="auto"; ta.style.height=Math.min(120,ta.scrollHeight)+"px";
+    broadcastTyping();
+  },onkeydown:e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); send(); }}});
+  const fileInp = el("input",{type:"file",style:{display:"none"},onchange:async e=>{
+    const f=e.target.files[0]; if(!f) return;
+    if(f.size>25*1024*1024){ alert("Max 25MB"); return; }
+    const path=`${room.id}/${Date.now()}_${f.name}`;
+    const { error } = await sb.storage.from("attachments").upload(path,f);
+    if(error){ alert(error.message); return; }
+    await sb.from("messages").insert({ room_id:room.id, user_id:session.user.id, content:"", attachments:[{path,name:f.name,size:f.size,mime:f.type}] });
+    fileInp.value="";
+  }});
+  let emojiPop=null;
+  async function send(){
+    const txt=ta.value.trim(); if(!txt) return;
+    ta.value=""; ta.style.height="auto";
+    const src = await detectLang(txt);
+    await sb.from("messages").insert({ room_id:room.id, user_id:session.user.id, content:txt, source_lang:src });
+  }
+  let lastTyping=0;
+  function broadcastTyping(){
+    const now=Date.now(); if(now-lastTyping<1500) return; lastTyping=now;
+    presenceChannel?.send({ type:"broadcast", event:"typing", payload:{ id:session.user.id, name:profile?.display_name||"?" }});
+  }
+  const wrap = el("div",{class:"composer",style:{position:"relative"}},
+    el("button",{class:"attach",onclick:()=>fileInp.click()},"📎"),
+    el("button",{class:"attach",onclick:e=>{
+      if(emojiPop){emojiPop.remove();emojiPop=null;return;}
+      emojiPop = el("div",{class:"emoji-pop"});
+      ["😀","😂","😍","🥲","😎","🤔","👍","🙏","🔥","❤️","🎉","💯","🚀","✨","😢","😡","👀","🙌","👏","💡"].forEach(em=>
+        emojiPop.appendChild(el("button",{onclick:()=>{ta.value+=em;emojiPop.remove();emojiPop=null;ta.focus();}},em)));
+      wrap.appendChild(emojiPop);
+    }},"😊"),
+    ta, fileInp,
+    el("button",{class:"send",onclick:send},"➤")
+  );
+  return wrap;
+}
+
+function setupRealtime(room, mem, chatList, typingBar){
+  channel = sb.channel(`room:${room.id}`)
+    .on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:`room_id=eq.${room.id}`},async ({ new:m })=>{
+      const { data: prof } = await sb.from("profiles").select("display_name").eq("id",m.user_id).single();
+      const node = renderMessage(m, prof?.display_name||"?", 0, {}, room);
+      const lastDay = chatList.querySelector(".date-div:last-of-type")?.textContent;
+      const dk=dayLabel(m.created_at);
+      if(lastDay!==dk) chatList.appendChild(el("div",{class:"date-div"},dk));
+      chatList.appendChild(node);
+      chatList.scrollTop=chatList.scrollHeight;
+      if(m.user_id!==session.user.id) sb.from("message_reads").upsert({ message_id:m.id, user_id:session.user.id },{ onConflict:"message_id,user_id" });
+    })
+    .on("postgres_changes",{event:"INSERT",schema:"public",table:"room_events",filter:`room_id=eq.${room.id}`},async ({ new:e })=>{
+      const { data: prof } = await sb.from("profiles").select("display_name").eq("id",e.user_id).single();
+      chatList.appendChild(el("div",{class:"event"},`${prof?.display_name||"?"} ${e.type==="join"?t("joined"):t("left")}`));
+      chatList.scrollTop=chatList.scrollHeight;
+    })
+    .on("postgres_changes",{event:"*",schema:"public",table:"message_reactions"},async ({ new:n,old:o,eventType })=>{
+      const mid=(n||o)?.message_id; if(!mid) return;
+      const node=chatList.querySelector(`[data-mid="${mid}"]`); if(!node||!node._renderRx) return;
+      const { data: rx } = await sb.from("message_reactions").select("*").eq("message_id",mid);
+      const map={}; (rx||[]).forEach(r=>{ if(!map[r.emoji])map[r.emoji]=[]; map[r.emoji].push(r.user_id); });
+      node._renderRx(map);
+    })
+    .on("postgres_changes",{event:"INSERT",schema:"public",table:"message_reads"},async ({ new:r })=>{
+      const node=chatList.querySelector(`[data-mid="${r.message_id}"]`); if(!node||!node._setRead) return;
+      const { count } = await sb.from("message_reads").select("*",{count:"exact",head:true}).eq("message_id",r.message_id);
+      node._setRead(count||0);
+    })
+    .subscribe();
+
+  presenceChannel = sb.channel(`typing:${room.id}`,{ config:{ broadcast:{ self:false }}})
+    .on("broadcast",{event:"typing"},({ payload })=>{
+      typingBar.textContent = `${payload.name} ${t("typing")}`;
+      clearTimeout(presenceChannel._t);
+      presenceChannel._t = setTimeout(()=>{ typingBar.textContent=""; },2000);
+    }).subscribe();
+}
+
+// ---------------- Rules modal ----------------
+function showRules(room, requireAccept){
+  let showOrig=false, translated=null;
+  const body = el("div",{},el("div",{class:"muted"},t("loading")));
+  const info = el("div",{class:"translate-info",style:{marginTop:"8px"}});
+  const wrap = el("div",{class:"col"},
+    el("div",{class:"notice"},t("rulesIntro")),
+    body, info
+  );
+  async function render(){
+    body.replaceChildren();
+    if(!room.rules){ body.appendChild(el("div",{class:"muted"},t("noRules"))); return; }
+    const src = room.rules_lang || await detectLang(room.rules);
+    if(src!==LANG && !translated){
+      const r = await translate(room.rules, LANG, src);
+      translated = typeof r==="string"?r:r.text;
+    }
+    body.appendChild(el("div",{style:{whiteSpace:"pre-wrap"}}, (translated && !showOrig)?translated:room.rules));
+    info.replaceChildren();
+    if(translated){
+      info.append(document.createTextNode(`${src} → ${LANG} ${t("translated")} · `),
+        el("button",{style:{color:"var(--primary)",textDecoration:"underline"},onclick:()=>{showOrig=!showOrig;render();}}, showOrig?t("translate"):t("showOriginal")));
+    }
+  }
+  render();
+  showModal(t("rules"),wrap,[
+    !requireAccept?{label:t("ok"),onclick:closeModal}:null,
+    requireAccept?{label:t("accept"),onclick:async()=>{
+      await sb.from("room_members").update({ rules_accepted_at:new Date().toISOString() }).eq("room_id",room.id).eq("user_id",session.user.id);
+      closeModal();
+    }}:null
+  ].filter(Boolean));
+}
+
+// ---------------- Owner settings ----------------
+function openSettings(room){
+  const name=el("input",{class:"input",value:room.name});
+  const desc=el("textarea",{class:"textarea",value:room.description||""});
+  const rules=el("textarea",{class:"textarea",value:room.rules||""});
+  const ann=el("textarea",{class:"textarea",value:room.announcement||""});
+  const color=el("input",{type:"color",value:room.accent_color||"#3ddc84",style:{width:"60px",height:"40px",background:"transparent",border:"1px solid var(--border)",borderRadius:"8px"}});
+  showModal(t("settings"),
+    el("div",{class:"col"},
+      el("label",{},t("roomName")),name,
+      el("label",{},t("accent")),color,
+      el("label",{},t("description")),desc,
+      el("label",{},t("announcement")),ann,
+      el("label",{},t("rules")),rules,
+    ),[
+      {label:t("cancel"),onclick:closeModal,ghost:true},
+      {label:t("save"),onclick:async()=>{
+        const updates={ name:name.value.trim(), description:desc.value.trim()||null, rules:rules.value.trim()||null, announcement:ann.value.trim()||null, accent_color:color.value };
+        if(rules.value.trim() && rules.value!==room.rules){ updates.rules_lang = await detectLang(rules.value); }
+        await sb.from("rooms").update(updates).eq("id",room.id);
+        closeModal(); openRoom(room.id);
+      }}
+    ]
+  );
+}
+
+// ---------------- Modal / emoji ----------------
+let modalEl=null;
+function showModal(title, body, actions){
+  closeModal();
+  modalEl = el("div",{class:"modal",onclick:e=>{if(e.target===modalEl)closeModal();}},
+    el("div",{class:"modal-card"},
+      el("div",{class:"modal-head"},title),
+      el("div",{class:"modal-body"},body),
+      el("div",{class:"modal-foot"},...actions.map(a=>el("button",{class:"btn"+(a.ghost?" ghost":""),onclick:a.onclick},a.label)))
+    )
+  );
+  document.body.appendChild(modalEl);
+}
+function closeModal(){ modalEl?.remove(); modalEl=null; }
+
+function openEmojiPick(anchor, cb){
+  const pop = el("div",{class:"emoji-pop",style:{position:"fixed",left:anchor.getBoundingClientRect().left+"px",top:(anchor.getBoundingClientRect().top-180)+"px"}});
+  ["👍","❤️","😂","😮","😢","🔥","🎉","💯","🙏","👀"].forEach(em=>
+    pop.appendChild(el("button",{onclick:()=>{cb(em);pop.remove();}},em)));
+  document.body.appendChild(pop);
+  setTimeout(()=>document.addEventListener("click",function h(e){if(!pop.contains(e.target)){pop.remove();document.removeEventListener("click",h);}}),50);
+}
+
+// ---------------- bootstrap ----------------
+async function boot(){
+  const { data } = await sb.auth.getSession();
+  session = data.session;
+  if(session){ await loadProfile(); renderRooms(); } else { renderAuth(); }
+  sb.auth.onAuthStateChange(async (event, s)=>{
+    session = s;
+    if(event==="SIGNED_IN"){ await loadProfile(); renderRooms(); }
+    else if(event==="SIGNED_OUT"){ cleanupRoom(); renderAuth(); }
+  });
+}
+boot();
+</script>
+</body>
+</html>
