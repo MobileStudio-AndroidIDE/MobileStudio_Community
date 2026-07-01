@@ -423,6 +423,8 @@ let isAtBottom = true;
 let searchActive = false, searchResults = [], searchIndex = -1;
 // 동시 타이핑 사용자 추적: userId -> {name, timeout}
 let typingUsers = new Map();
+// 낙관적 렌더된 메시지 ID — Realtime INSERT 이벤트 중복 방지
+const renderedMsgIds = new Set();
 
 async function loadProfile(){
   if(!session) return null;
@@ -1309,7 +1311,16 @@ function renderComposer(room, chatList){
       payload.reply_to_snippet = replyTarget.content;
       replyTarget=null; refreshBars();
     }
-    await sb.from("messages").insert(payload);
+    // INSERT 후 반환된 row로 즉시 렌더 (Realtime 지연 없이 바로 표시)
+    const { data: inserted, error } = await sb.from("messages").insert(payload).select().single();
+    if(error){ toast(error.message, "error"); ta.value=txt; ta.style.height="auto"; ta.style.height=Math.min(160,ta.scrollHeight)+"px"; return; }
+    renderedMsgIds.add(inserted.id);
+    const lastDayEl = chatList.querySelector(".date-div:last-of-type");
+    const dk = dayLabel(inserted.created_at);
+    if(!lastDayEl || lastDayEl.textContent !== dk)
+      chatList.appendChild(el("div",{class:"date-div"}, dk));
+    chatList.appendChild(renderMessage(inserted, profile?.display_name||"?", 0, {}, room, new Map()));
+    chatList.scrollTop = chatList.scrollHeight;
   }
   let lastTyping=0;
   function broadcastTyping(){
@@ -1364,8 +1375,18 @@ async function uploadFile(room, f, chatList){
   const { error } = await sb.storage.from("attachments").upload(path,f);
   if(error){ toast(error.message,"error"); progressNode.remove(); return; }
   progressNode.querySelector(".bar").style.width="100%";
-  await sb.from("messages").insert({ room_id:room.id, user_id:session.user.id, content:"", attachments:[{path,name:f.name,size:f.size,mime:f.type}] });
-  setTimeout(()=>progressNode.remove(), 300);
+  const attPayload = { room_id:room.id, user_id:session.user.id, content:"", attachments:[{path,name:f.name,size:f.size,mime:f.type}] };
+  const { data: inserted, error: insErr } = await sb.from("messages").insert(attPayload).select().single();
+  if(insErr){ toast(insErr.message,"error"); progressNode.remove(); return; }
+  // 낙관적 렌더: 진행 카드 제거 후 실제 파일 메시지 즉시 표시
+  renderedMsgIds.add(inserted.id);
+  progressNode.remove();
+  const lastDayEl = chatList.querySelector(".date-div:last-of-type");
+  const dk = dayLabel(inserted.created_at);
+  if(!lastDayEl || lastDayEl.textContent !== dk)
+    chatList.appendChild(el("div",{class:"date-div"}, dk));
+  chatList.appendChild(renderMessage(inserted, profile?.display_name||"?", 0, {}, room, new Map()));
+  chatList.scrollTop = chatList.scrollHeight;
 }
 
 // ==================================================================
@@ -1574,11 +1595,13 @@ function maybeNotify(title, body){
 function setupRealtime(room, mem, chatList, typingBar, pinnedBar, composerObj){
   channel = sb.channel(`room:${room.id}`)
     .on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:`room_id=eq.${room.id}`},async ({ new:m })=>{
+      // 낙관적 렌더로 이미 표시된 내 메시지는 중복 렌더 건너뜀
+      if(renderedMsgIds.has(m.id)){ renderedMsgIds.delete(m.id); return; }
       const { data: prof } = await sb.from("profiles").select("display_name").eq("id",m.user_id).single();
       const node = renderMessage(m, prof?.display_name||"?", 0, {}, room, new Map());
-      const lastDay = chatList.querySelector(".date-div:last-of-type")?.textContent;
+      const lastDayEl = chatList.querySelector(".date-div:last-of-type");
       const dk=dayLabel(m.created_at);
-      if(lastDay!==dk) chatList.appendChild(el("div",{class:"date-div"},dk));
+      if(!lastDayEl || lastDayEl.textContent!==dk) chatList.appendChild(el("div",{class:"date-div"},dk));
       chatList.appendChild(node);
       if(isAtBottom){
         chatList.scrollTop=chatList.scrollHeight;
@@ -1682,4 +1705,3 @@ boot();
 </script>
 </body>
 </html>
-
