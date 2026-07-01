@@ -203,13 +203,26 @@ hr{border:0;border-top:1px solid var(--border);margin:12px 0}
 .code-block .cb-lang{font-family:var(--mono);font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;gap:6px}
 .code-block .cb-lang .dot3{display:inline-flex;gap:3px}
 .code-block .cb-lang .dot3 span{width:7px;height:7px;border-radius:50%}
+.code-block .cb-head-actions{display:flex;align-items:center;gap:2px}
 .code-block .cb-copy{font-family:var(--sans);font-size:11px;font-weight:600;color:var(--muted);padding:3px 8px;border-radius:6px;display:flex;align-items:center;gap:4px}
 .code-block .cb-copy:hover{background:rgba(125,125,125,.15);color:var(--fg)}
 .code-block .cb-copy.copied{color:var(--primary)}
+.code-block .cb-wrap-toggle{font-family:var(--sans);font-size:11px;font-weight:600;color:var(--muted);padding:3px 7px;border-radius:6px}
+.code-block .cb-wrap-toggle:hover{background:rgba(125,125,125,.15);color:var(--fg)}
+.code-block .cb-wrap-toggle.active{color:var(--primary)}
 .code-block pre{margin:0;padding:10px 12px;overflow:auto;max-height:420px;font-family:var(--mono)!important;font-size:12.5px!important;line-height:1.6!important}
 .code-block pre[class*="language-"]{background:transparent!important}
 .code-block code[class*="language-"]{font-family:var(--mono)!important}
+.code-block.wrap-on pre{white-space:pre-wrap!important;word-break:break-word!important;overflow-x:hidden}
+.code-block.wrap-on pre[class*="language-"]{white-space:pre-wrap!important;word-break:break-word!important}
 .code-block .line-numbers-rows{border-right-color:var(--code-border)!important}
+.code-block.collapsed pre{max-height:0;padding-top:0;padding-bottom:0;overflow:hidden}
+.code-block .cb-expand{width:100%;padding:6px;font-size:11px;color:var(--muted);background:rgba(125,125,125,.06);border-top:1px solid var(--code-border)}
+.code-block .cb-expand:hover{background:rgba(125,125,125,.12);color:var(--fg)}
+.code-block .cb-foot{display:flex;align-items:center;justify-content:space-between;padding:4px 10px;border-top:1px solid var(--code-border);font-size:10.5px;color:var(--muted-2)}
+.diff-add{background:rgba(61,220,132,.14);display:block;margin:0 -12px;padding:0 12px}
+.diff-del{background:rgba(255,107,107,.14);display:block;margin:0 -12px;padding:0 12px}
+.diff-hunk{color:var(--muted);display:block;margin:0 -12px;padding:0 12px;opacity:.7}
 .msg .bubble .inline-code{font-family:var(--mono);background:rgba(125,125,125,.18);padding:1px 5px;border-radius:5px;font-size:.9em}
 .msg.mine .bubble .inline-code{background:rgba(0,0,0,.18)}
 .bubble .md-bold{font-weight:700}
@@ -295,10 +308,10 @@ const LANGS = [
 ];
 const T = {
   ko:{signin:"로그인",signup:"회원가입",username:"아이디",password:"비밀번호",displayName:"이름",gmail:"Gmail (선택)",rooms:"채팅방",newRoom:"새 채팅방",roomName:"방 이름",description:"설명",create:"만들기",cancel:"취소",send:"전송",leave:"나가기",settings:"설정",rules:"규칙",viewRules:"규칙 보기",announcement:"공지",ok:"확인",save:"저장",accept:"동의",showOriginal:"원본보기",translate:"번역하기",translated:"번역됨",read:"읽음",typing:"입력 중…",joined:"님이 입장했습니다",left:"님이 나갔습니다",cannotPreview:"이 파일은 미리보기 할 수 없습니다",download:"다운로드",copy:"복사",copied:"복사됨",view:"보기",viewFile:"파일 보기",accent:"강조색",signOut:"로그아웃",language:"언어",empty:"아직 채팅방이 없습니다",joinedAt:"입장 시점 이후 메시지만 표시됩니다",today:"오늘",yesterday:"어제",noRules:"규칙이 없습니다",rulesIntro:"이 방의 규칙입니다. 동의하시면 확인을 눌러주세요.",noAnnouncement:"공지가 없습니다",messagePlaceholder:"메시지를 입력하세요…",welcome:"AndroidDev 다국어 채팅",welcomeDesc:"10개 언어 자동 번역으로 어디서든 대화하세요",loading:"로딩 중…",
-    reply:"답장",edit:"수정",delete:"삭제",pin:"고정",unpin:"고정 해제",deleted:"삭제된 메시지입니다",edited:"(수정됨)",editing:"메시지 수정 중",cancelEdit:"취소",search:"메시지 검색",searchPlaceholder:"메시지 검색…",noResults:"결과 없음",pinnedMessages:"고정된 메시지",loadMore:"이전 메시지 불러오기",newMessages:"새 메시지",members:"참여자",online:"온라인",offline:"오프라인",theme:"테마",dark:"다크",light:"라이트",shortcuts:"단축키",confirmDelete:"이 메시지를 삭제할까요?",replyingTo:"에게 답장",notifEnable:"데스크탑 알림 켜기",notifOn:"알림 켜짐",dropToUpload:"여기에 놓아 업로드",codeMode:"코드 모드",jumpToMessage:"메시지로 이동",pinnedEmpty:"고정된 메시지가 없습니다",you:"나"},
+    reply:"답장",edit:"수정",delete:"삭제",pin:"고정",unpin:"고정 해제",deleted:"삭제된 메시지입니다",edited:"(수정됨)",editing:"메시지 수정 중",cancelEdit:"취소",search:"메시지 검색",searchPlaceholder:"메시지 검색…",noResults:"결과 없음",pinnedMessages:"고정된 메시지",loadMore:"이전 메시지 불러오기",newMessages:"새 메시지",members:"참여자",online:"온라인",offline:"오프라인",theme:"테마",dark:"다크",light:"라이트",shortcuts:"단축키",confirmDelete:"이 메시지를 삭제할까요?",replyingTo:"에게 답장",notifEnable:"데스크탑 알림 켜기",notifOn:"알림 켜짐",dropToUpload:"여기에 놓아 업로드",codeMode:"코드 모드",jumpToMessage:"메시지로 이동",pinnedEmpty:"고정된 메시지가 없습니다",you:"나",wrapOn:"줄바꿈 켜짐",wrapOff:"줄바꿈 꺼짐",collapse:"접기",expand:"펼치기",lines:"줄"},
 };
 T.en={signin:"Sign in",signup:"Sign up",username:"Username",password:"Password",displayName:"Display name",gmail:"Gmail (optional)",rooms:"Rooms",newRoom:"New room",roomName:"Room name",description:"Description",create:"Create",cancel:"Cancel",send:"Send",leave:"Leave",settings:"Settings",rules:"Rules",viewRules:"View rules",announcement:"Announcement",ok:"OK",save:"Save",accept:"Accept",showOriginal:"Show original",translate:"Translate",translated:"translated",read:"Read",typing:"typing…",joined:"joined",left:"left",cannotPreview:"This file cannot be previewed",download:"Download",copy:"Copy",copied:"Copied",view:"View",viewFile:"View file",accent:"Accent color",signOut:"Sign out",language:"Language",empty:"No rooms yet",joinedAt:"Showing messages from when you joined",today:"Today",yesterday:"Yesterday",noRules:"No rules",rulesIntro:"Room rules. Press OK to accept.",noAnnouncement:"No announcement",messagePlaceholder:"Type a message…",welcome:"AndroidDev Multilingual Chat",welcomeDesc:"Chat in any language with auto-translation",loading:"Loading…",
-  reply:"Reply",edit:"Edit",delete:"Delete",pin:"Pin",unpin:"Unpin",deleted:"This message was deleted",edited:"(edited)",editing:"Editing message",cancelEdit:"Cancel",search:"Search messages",searchPlaceholder:"Search messages…",noResults:"No results",pinnedMessages:"Pinned messages",loadMore:"Load earlier messages",newMessages:"New messages",members:"Members",online:"Online",offline:"Offline",theme:"Theme",dark:"Dark",light:"Light",shortcuts:"Shortcuts",confirmDelete:"Delete this message?",replyingTo:"Replying to",notifEnable:"Enable desktop notifications",notifOn:"Notifications on",dropToUpload:"Drop to upload",codeMode:"Code mode",jumpToMessage:"Jump to message",pinnedEmpty:"No pinned messages",you:"You"};
+  reply:"Reply",edit:"Edit",delete:"Delete",pin:"Pin",unpin:"Unpin",deleted:"This message was deleted",edited:"(edited)",editing:"Editing message",cancelEdit:"Cancel",search:"Search messages",searchPlaceholder:"Search messages…",noResults:"No results",pinnedMessages:"Pinned messages",loadMore:"Load earlier messages",newMessages:"New messages",members:"Members",online:"Online",offline:"Offline",theme:"Theme",dark:"Dark",light:"Light",shortcuts:"Shortcuts",confirmDelete:"Delete this message?",replyingTo:"Replying to",notifEnable:"Enable desktop notifications",notifOn:"Notifications on",dropToUpload:"Drop to upload",codeMode:"Code mode",jumpToMessage:"Jump to message",pinnedEmpty:"No pinned messages",you:"You",wrapOn:"Wrap on",wrapOff:"Wrap off",collapse:"Collapse",expand:"Expand",lines:"lines"};
 ["ja","zh","es","fr","de","ru","pt","vi"].forEach(l=>T[l]=T.en);
 let LANG = localStorage.getItem("lang") || (navigator.language||"en").slice(0,2);
 if(!T[LANG]) LANG="en";
@@ -408,6 +421,8 @@ let notifPermission = (typeof Notification!=="undefined") ? Notification.permiss
 let unreadSinceScroll = 0;
 let isAtBottom = true;
 let searchActive = false, searchResults = [], searchIndex = -1;
+// 동시 타이핑 사용자 추적: userId -> {name, timeout}
+let typingUsers = new Map();
 
 async function loadProfile(){
   if(!session) return null;
@@ -537,6 +552,7 @@ async function renderRoom(room, mem){
   oldestLoadedAt = null; hasMoreHistory = true; loadingMore = false;
   replyTarget = null; editTarget = null; unreadSinceScroll = 0; isAtBottom = true;
   searchActive = false; searchResults = []; searchIndex = -1;
+  typingUsers = new Map();
 
   const chatList = el("div",{class:"chat-list"});
   const typingBar = el("div",{class:"typing"});
@@ -652,6 +668,8 @@ async function renderRoom(room, mem){
 function cleanupRoom(){
   if(channel){ sb.removeChannel(channel); channel=null; }
   if(presenceChannel){ sb.removeChannel(presenceChannel); presenceChannel=null; }
+  typingUsers.forEach(u=>clearTimeout(u.timeout));
+  typingUsers = new Map();
   document.documentElement.style.setProperty("--primary", THEME==="light" ? "#1ab36a" : "#3ddc84");
   document.removeEventListener("keydown", window.__roomKeyHandler||(()=>{}));
 }
@@ -715,6 +733,30 @@ function jumpToMessage(mid, chatList){
   }
 }
 
+// 메시지 ID 목록에 대해 읽음 수 / 리액션 맵을 한번에 조회
+async function fetchReadsAndReactions(msgIds){
+  let readMap = new Map(), rxMap = new Map();
+  if(!msgIds.length) return { readMap, rxMap };
+  const { data: reads } = await sb.from("message_reads").select("message_id").in("message_id",msgIds);
+  (reads||[]).forEach(r=>readMap.set(r.message_id,(readMap.get(r.message_id)||0)+1));
+  const { data: rx } = await sb.from("message_reactions").select("*").in("message_id",msgIds);
+  (rx||[]).forEach(r=>{
+    if(!rxMap.has(r.message_id)) rxMap.set(r.message_id,{});
+    const map=rxMap.get(r.message_id); if(!map[r.emoji]) map[r.emoji]=[];
+    map[r.emoji].push(r.user_id);
+  });
+  return { readMap, rxMap };
+}
+async function fetchReadCount(messageId){
+  const { count } = await sb.from("message_reads").select("*",{count:"exact",head:true}).eq("message_id",messageId);
+  return count||0;
+}
+async function fetchReactionsFor(messageId){
+  const { data: rx } = await sb.from("message_reactions").select("*").eq("message_id",messageId);
+  const map={}; (rx||[]).forEach(r=>{ if(!map[r.emoji])map[r.emoji]=[]; map[r.emoji].push(r.user_id); });
+  return map;
+}
+
 async function loadTimeline(room, mem, chatList){
   const since = mem.joined_at;
   const [{ data: msgs }, { data: evts }] = await Promise.all([
@@ -730,17 +772,7 @@ async function loadTimeline(room, mem, chatList){
   const nameMap = new Map((profs||[]).map(p=>[p.id,p.display_name]));
 
   const msgIds = msgsAsc.map(m=>m.id);
-  let readMap = new Map(), rxMap = new Map();
-  if(msgIds.length){
-    const { data: reads } = await sb.from("message_reads").select("message_id").in("message_id",msgIds);
-    (reads||[]).forEach(r=>readMap.set(r.message_id,(readMap.get(r.message_id)||0)+1));
-    const { data: rx } = await sb.from("message_reactions").select("*").in("message_id",msgIds);
-    (rx||[]).forEach(r=>{
-      if(!rxMap.has(r.message_id)) rxMap.set(r.message_id,{});
-      const map=rxMap.get(r.message_id); if(!map[r.emoji]) map[r.emoji]=[];
-      map[r.emoji].push(r.user_id);
-    });
-  }
+  const { readMap, rxMap } = await fetchReadsAndReactions(msgIds);
   const msgById = new Map(msgsAsc.map(m=>[m.id,m]));
 
   const items = [
@@ -782,23 +814,27 @@ async function loadOlderMessages(room, mem, chatList){
   const { data: profs } = await sb.from("profiles").select("id,display_name").in("id",[...userIds]);
   const nameMap = new Map((profs||[]).map(p=>[p.id,p.display_name]));
   const msgIds = msgsAsc.map(m=>m.id);
-  let readMap=new Map(), rxMap=new Map();
-  if(msgIds.length){
-    const { data: reads } = await sb.from("message_reads").select("message_id").in("message_id",msgIds);
-    (reads||[]).forEach(r=>readMap.set(r.message_id,(readMap.get(r.message_id)||0)+1));
-    const { data: rx } = await sb.from("message_reactions").select("*").in("message_id",msgIds);
-    (rx||[]).forEach(r=>{ if(!rxMap.has(r.message_id)) rxMap.set(r.message_id,{}); const map=rxMap.get(r.message_id); if(!map[r.emoji]) map[r.emoji]=[]; map[r.emoji].push(r.user_id); });
-  }
+  const { readMap, rxMap } = await fetchReadsAndReactions(msgIds);
   const msgById = new Map(msgsAsc.map(m=>[m.id,m]));
+
+  // 날짜 구분선을 올바르게 포함해서 prepend (기존 첫 메시지의 날짜와 비교)
+  const firstExistingDateDiv = chatList.querySelector(".date-div");
+  const firstExistingDayLabel = firstExistingDateDiv?.textContent;
+
   const frag = document.createDocumentFragment();
-  let lastDay = dayKey(msgsAsc[msgsAsc.length-1].created_at);
+  let lastDay = "";
   for(let i=0;i<msgsAsc.length;i++){
     const m = msgsAsc[i];
     const dk = dayKey(m.created_at);
-    if(i>0 && dk!==dayKey(msgsAsc[i-1].created_at)){
-      // handled below via reverse-insert; simpler: just insert date dividers normally
+    if(dk!==lastDay){
+      frag.appendChild(el("div",{class:"date-div"},dayLabel(m.created_at)));
+      lastDay = dk;
     }
     frag.appendChild(renderMessage(m, nameMap.get(m.user_id)||"?", readMap.get(m.id)||0, rxMap.get(m.id)||{}, room, msgById));
+  }
+  // 만약 새로 불러온 마지막 날짜가 기존 화면의 첫 날짜와 같다면, 기존 첫 date-div는 중복이므로 제거
+  if(firstExistingDateDiv && lastDay && dayLabel(msgsAsc[msgsAsc.length-1].created_at)===firstExistingDayLabel){
+    firstExistingDateDiv.remove();
   }
   chatList.prepend(frag);
   chatList.scrollTop = chatList.scrollHeight - prevHeight;
@@ -926,6 +962,14 @@ function renderMessage(m, author, readCount, reactions, room, msgById){
     if(isMine || isOwnerOrAdmin){
       actions.appendChild(el("button",{title:t("delete"),onclick:async()=>{
         if(!confirm(t("confirmDelete"))) return;
+        // 첨부파일이 있었다면 Storage에서도 삭제 (DB row는 비우되 실제 파일은 남지 않도록)
+        const prevAtts = m.attachments||[];
+        if(Array.isArray(prevAtts) && prevAtts.length){
+          const paths = prevAtts.map(a=>a.path).filter(Boolean);
+          if(paths.length){
+            try{ await sb.storage.from("attachments").remove(paths); }catch(e){ /* 스토리지 정리 실패는 무시하고 진행 */ }
+          }
+        }
         await sb.from("messages").update({ deleted_at:new Date().toISOString(), content:null, attachments:[] }).eq("id",m.id);
       }},"🗑"));
     }
@@ -954,7 +998,7 @@ function renderMessage(m, author, readCount, reactions, room, msgById){
   const meta = el("div",{class:"meta"},fmtTime(m.created_at));
   if(isMine && readCount>0 && !isDeleted) meta.appendChild(el("span",{class:"read"},`· ${t("read")} ${readCount}`));
   wrap.appendChild(meta);
-  wrap._setRead = (n)=>{ if(!isMine) return; const r=meta.querySelector(".read"); if(r) r.textContent=`· ${t("read")} ${n}`; else if(n>0) meta.appendChild(el("span",{class:"read"},`· ${t("read")} ${n}`)); };
+  wrap._setRead = (n)=>{ if(!isMine) return; const r=meta.querySelector(".read"); if(r){ if(n>0) r.textContent=`· ${t("read")} ${n}`; else r.remove(); } else if(n>0) meta.appendChild(el("span",{class:"read"},`· ${t("read")} ${n}`)); };
 
   return wrap;
 }
@@ -964,7 +1008,7 @@ function previewKind(name, mime){
   const ext=(name.split(".").pop()||"").toLowerCase();
   if(BLOCKED.has(ext)) return "none";
   if((mime||"").startsWith("image/")) return "image";
-  if((mime||"").startsWith("text/")||["json","js","ts","tsx","jsx","md","xml","yml","yaml","kt","java","py","css","html","gradle","properties","sh","txt","c","cpp","go","rs","rb","php","swift"].includes(ext)) return "text";
+  if((mime||"").startsWith("text/")||["json","js","ts","tsx","jsx","md","xml","yml","yaml","kt","java","py","css","html","gradle","properties","sh","txt","c","cpp","go","rs","rb","php","swift","diff","patch"].includes(ext)) return "text";
   return "none";
 }
 async function signedUrl(path){
@@ -1051,33 +1095,84 @@ function renderMessageContent(rawText, mentionNames){
   return frag;
 }
 
+// 코드블록 줄바꿈 설정은 세션 동안 전역으로 기억 (사용자가 한번 켜면 이후 블록도 동일하게)
+let __codeWrapPref = localStorage.getItem("codeWrap")==="1";
+let __cbid = 0;
+const DIFF_LANGS = new Set(["diff","patch"]);
+
 function renderCodeBlock(code, lang){
-  const id = `cb-${Date.now()}-${__cbid++}`;
-  const wrap = el("div",{class:"code-block"});
+  const wrap = el("div",{class:"code-block"+(__codeWrapPref?" wrap-on":"")});
   const normalizedLang = (lang||"").toLowerCase().replace(/^js$/,"javascript").replace(/^ts$/,"typescript").replace(/^py$/,"python").replace(/^kt$/,"kotlin").replace(/^sh$/,"bash") || "plaintext";
+  const isDiff = DIFF_LANGS.has(normalizedLang) || /^([+-]{1}[^+-]|@@ )/m.test(code);
+
+  const wrapBtn = el("button",{class:"cb-wrap-toggle"+(__codeWrapPref?" active":""),title:t("wrapOn")+"/"+t("wrapOff"),onclick:()=>{
+    __codeWrapPref = !__codeWrapPref;
+    localStorage.setItem("codeWrap", __codeWrapPref?"1":"0");
+    // 현재 페이지의 모든 코드블록에 동일하게 적용
+    document.querySelectorAll(".code-block").forEach(cb=>{
+      cb.classList.toggle("wrap-on", __codeWrapPref);
+      cb.querySelector(".cb-wrap-toggle")?.classList.toggle("active", __codeWrapPref);
+    });
+  }},"↵");
+
   const head = el("div",{class:"cb-head"},
     el("span",{class:"cb-lang"},
       el("span",{class:"dot3"}, el("span",{style:{background:"#ff5f56"}}), el("span",{style:{background:"#ffbd2e"}}), el("span",{style:{background:"#27c93f"}})),
-      normalizedLang
+      isDiff ? "diff" : normalizedLang
     ),
-    el("button",{class:"cb-copy",onclick:async (e)=>{
-      try{
-        await navigator.clipboard.writeText(code);
-        const btn = e.currentTarget;
-        btn.classList.add("copied"); btn.textContent="✓ "+t("copied");
-        setTimeout(()=>{ btn.classList.remove("copied"); btn.innerHTML="⎘ "+t("copy"); },1500);
-      }catch{ toast("복사 실패", "error"); }
-    }},"⎘ "+t("copy"))
+    el("div",{class:"cb-head-actions"},
+      wrapBtn,
+      el("button",{class:"cb-copy",onclick:async (e)=>{
+        try{
+          await navigator.clipboard.writeText(code);
+          const btn = e.currentTarget;
+          btn.classList.add("copied"); btn.textContent="✓ "+t("copied");
+          setTimeout(()=>{ btn.classList.remove("copied"); btn.innerHTML="⎘ "+t("copy"); },1500);
+        }catch{ toast("복사 실패", "error"); }
+      }},"⎘ "+t("copy"))
+    )
   );
+
   const pre = el("pre",{class:"line-numbers"});
-  const codeEl = el("code",{class:`language-${normalizedLang}`}, code);
+  let codeEl;
+  if(isDiff){
+    // diff/patch는 +,-,@@ 라인을 색칠해서 직접 렌더 (Prism diff 컴포넌트에 의존하지 않음)
+    codeEl = el("code",{class:"language-diff"});
+    const lines = code.split("\n");
+    lines.forEach((line,i)=>{
+      const lineWrap = document.createElement("span");
+      if(/^@@.*@@/.test(line)) lineWrap.className="diff-hunk";
+      else if(/^\+/.test(line) && !/^\+\+\+/.test(line)) lineWrap.className="diff-add";
+      else if(/^-/.test(line) && !/^---/.test(line)) lineWrap.className="diff-del";
+      lineWrap.textContent = line + (i<lines.length-1 ? "\n" : "");
+      codeEl.appendChild(lineWrap);
+    });
+  } else {
+    codeEl = el("code",{class:`language-${normalizedLang}`}, code);
+  }
   pre.appendChild(codeEl);
   wrap.appendChild(head);
   wrap.appendChild(pre);
-  // Prism 하이라이팅은 DOM에 붙은 후 비동기로 실행
-  requestAnimationFrame(()=>{
-    try{ window.Prism && window.Prism.highlightElement(codeEl); }catch(e){}
-  });
+
+  // 줄수 표시 + 긴 코드 접기/펼치기 (50줄 이상이면 기본 접힘)
+  const lineCount = code.split("\n").length;
+  const COLLAPSE_THRESHOLD = 50;
+  if(lineCount > COLLAPSE_THRESHOLD){
+    wrap.classList.add("collapsed");
+    const expandBtn = el("button",{class:"cb-expand"}, `▾ ${t("expand")} (${lineCount} ${t("lines")})`);
+    expandBtn.addEventListener("click", ()=>{
+      const collapsed = wrap.classList.toggle("collapsed");
+      expandBtn.textContent = collapsed ? `▾ ${t("expand")} (${lineCount} ${t("lines")})` : `▴ ${t("collapse")}`;
+    });
+    wrap.appendChild(expandBtn);
+  }
+
+  // Prism 하이라이팅은 DOM에 붙은 후 비동기로 실행 (diff는 자체 렌더이므로 skip)
+  if(!isDiff){
+    requestAnimationFrame(()=>{
+      try{ window.Prism && window.Prism.highlightElement(codeEl); }catch(e){}
+    });
+  }
   return wrap;
 }
 
@@ -1495,14 +1590,23 @@ function setupRealtime(room, mem, chatList, typingBar, pinnedBar, composerObj){
       if(m.user_id!==session.user.id){
         sb.from("message_reads").upsert({ message_id:m.id, user_id:session.user.id },{ onConflict:"message_id,user_id" });
         maybeNotify(`${prof?.display_name||"?"} · ${room.name}`, m.content || "📎 파일을 보냈습니다");
+        // 새 메시지가 도착하면 그 발신자의 타이핑 표시는 제거
+        if(typingUsers.has(m.user_id)){
+          clearTimeout(typingUsers.get(m.user_id).timeout);
+          typingUsers.delete(m.user_id);
+          renderTypingBar(typingBar);
+        }
       }
     })
     .on("postgres_changes",{event:"UPDATE",schema:"public",table:"messages",filter:`room_id=eq.${room.id}`},async ({ new:m })=>{
       const node = chatList.querySelector(`[data-mid="${m.id}"]`);
       if(!node) return;
       const { data: prof } = await sb.from("profiles").select("display_name").eq("id",m.user_id).single();
-      const readCount = parseInt(node.querySelector(".read")?.textContent?.match(/\d+/)?.[0]||"0",10);
-      const reactions = {};
+      // 읽음 수와 리액션을 실제 DB에서 다시 조회해서 손실 없이 반영
+      const [readCount, reactions] = await Promise.all([
+        fetchReadCount(m.id),
+        fetchReactionsFor(m.id),
+      ]);
       const fresh = renderMessage(m, prof?.display_name||"?", readCount, reactions, room, new Map());
       node.replaceWith(fresh);
       if(m.pinned !== undefined){ await loadPinned(room, pinnedBar, chatList); renderPinnedBar(pinnedBar, chatList); }
@@ -1516,25 +1620,23 @@ function setupRealtime(room, mem, chatList, typingBar, pinnedBar, composerObj){
     .on("postgres_changes",{event:"*",schema:"public",table:"message_reactions"},async ({ new:n,old:o,eventType })=>{
       const mid=(n||o)?.message_id; if(!mid) return;
       const node=chatList.querySelector(`[data-mid="${mid}"]`); if(!node||!node._renderRx) return;
-      const { data: rx } = await sb.from("message_reactions").select("*").eq("message_id",mid);
-      const map={}; (rx||[]).forEach(r=>{ if(!map[r.emoji])map[r.emoji]=[]; map[r.emoji].push(r.user_id); });
+      const map = await fetchReactionsFor(mid);
       node._renderRx(map);
     })
     .on("postgres_changes",{event:"INSERT",schema:"public",table:"message_reads"},async ({ new:r })=>{
       const node=chatList.querySelector(`[data-mid="${r.message_id}"]`); if(!node||!node._setRead) return;
-      const { count } = await sb.from("message_reads").select("*",{count:"exact",head:true}).eq("message_id",r.message_id);
-      node._setRead(count||0);
+      const count = await fetchReadCount(r.message_id);
+      node._setRead(count);
     })
     .subscribe();
 
   presenceChannel = sb.channel(`typing:${room.id}`,{ config:{ presence:{ key:session.user.id }, broadcast:{ self:false }}})
     .on("broadcast",{event:"typing"},({ payload })=>{
-      typingBar.replaceChildren(
-        document.createTextNode(`${payload.name} ${t("typing")} `),
-        el("span",{class:"dots"}, el("span",{}), el("span",{}), el("span",{}))
-      );
-      clearTimeout(presenceChannel._t);
-      presenceChannel._t = setTimeout(()=>{ typingBar.replaceChildren(); },2000);
+      // 여러 명이 동시에 타이핑해도 각자 독립적으로 표시되도록 Map으로 관리
+      if(typingUsers.has(payload.id)) clearTimeout(typingUsers.get(payload.id).timeout);
+      const timeout = setTimeout(()=>{ typingUsers.delete(payload.id); renderTypingBar(typingBar); }, 2000);
+      typingUsers.set(payload.id, { name: payload.name, timeout });
+      renderTypingBar(typingBar);
     })
     .on("presence",{event:"sync"},()=>{
       const state = presenceChannel.presenceState();
@@ -1549,6 +1651,17 @@ function setupRealtime(room, mem, chatList, typingBar, pinnedBar, composerObj){
     .subscribe(async (status)=>{
       if(status==="SUBSCRIBED"){ await presenceChannel.track({ online_at: new Date().toISOString() }); }
     });
+}
+
+// 동시에 여러 명이 타이핑 중일 때: "A, B님이 입력 중…" 형태로 표시
+function renderTypingBar(typingBar){
+  const names = [...typingUsers.values()].map(u=>u.name);
+  if(!names.length){ typingBar.replaceChildren(); return; }
+  const label = names.length<=2 ? names.join(", ") : `${names.slice(0,2).join(", ")} 외 ${names.length-2}명`;
+  typingBar.replaceChildren(
+    document.createTextNode(`${label} ${t("typing")} `),
+    el("span",{class:"dots"}, el("span",{}), el("span",{}), el("span",{}))
+  );
 }
 
 // ==================================================================
