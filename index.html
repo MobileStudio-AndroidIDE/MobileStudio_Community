@@ -1283,7 +1283,7 @@ function renderComposer(room, chatList){
     updateMentionPop();
   },onkeydown:e=>{
     if(mentionActive && e.key==="Escape"){ closeMentionPop(); return; }
-    if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); closeMentionPop(); send(); }
+    if((e.metaKey||e.ctrlKey) && e.key==="Enter"){ e.preventDefault(); closeMentionPop(); send(); }
   },onpaste:async e=>{
     const items = [...(e.clipboardData?.items||[])];
     const imgItem = items.find(i=>i.type.startsWith("image/"));
@@ -1514,8 +1514,8 @@ function openMembers(room){
 
 function openShortcutsModal(){
   const rows = [
-    ["Enter", t("send")],
-    ["Shift+Enter", "줄바꿈"],
+    ["Ctrl/⌘+Enter", t("send")],
+    ["Enter", "줄바꿈"],
     ["Ctrl/⌘+K", t("search")],
     ["↑ (빈 입력창)", "마지막 메시지 수정"],
     ["Esc", "닫기 / 취소"],
